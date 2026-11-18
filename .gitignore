@@ -1,0 +1,31 @@
+# Konfigurasi lokal (berisi kredensial database)
+/config/config.php
+
+# Log aplikasi
+/storage/logs/*
+!/storage/logs/.gitkeep
+
+# File unggahan pengguna
+/public/uploads/*
+!/public/uploads/.gitkeep
+!/public/uploads/.htaccess
+
+# Editor / OS
+/.vscode/
+/.idea/
+.DS_Store
+Thumbs.db
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+
+# Local AI tool settings
+/.claude/settings.local.json
+
+# Logs
+*.log
+
+# Local database backups
+/database/backup*.sql
