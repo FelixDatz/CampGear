@@ -1,5 +1,5 @@
 -- =====================================================================
--- CampGear — tiga artikel informatif awal.
+-- CampGear — empat artikel informatif awal.
 -- Aman dijalankan berulang kali: artikel hanya ditambahkan bila slug-nya
 -- belum ada (INSERT ... WHERE NOT EXISTS). Tidak menghapus data apa pun.
 -- =====================================================================
@@ -120,3 +120,46 @@ SELECT (SELECT id FROM users WHERE email = 'staff@demo.test' LIMIT 1),
 Persiapan yang baik membuat camping di musim hujan tetap aman dan menyenangkan. Pastikan juga kamu memberi tahu keluarga atau teman tentang rencana perjalanan dan perkiraan waktu kembali.',
 'published', NOW() - INTERVAL 7 DAY
 FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM articles WHERE slug = 'tips-camping-aman-saat-musim-hujan');
+
+INSERT INTO articles (author_id, title, slug, excerpt, body, status, published_at)
+SELECT (SELECT id FROM users WHERE email = 'staff@demo.test' LIMIT 1),
+'Cara Menyusun Isi Carrier agar Nyaman Dibawa',
+'cara-menyusun-isi-carrier',
+'Susunan isi carrier menentukan apakah beban terasa ringan dan stabil atau justru membuat bahu cepat pegal. Begini cara mengaturnya dari bawah sampai atas.',
+'Carrier yang diisi asal-asalan terasa berat, menarik badan ke belakang, dan membuat bahu cepat pegal. Padahal dengan isi yang sama, susunan yang tepat membuat beban terasa jauh lebih ringan. Prinsipnya sederhana: **barang berat dekat punggung**, barang yang jarang dipakai di bawah, dan barang yang sering dipakai mudah dijangkau.
+
+## Pilih ukuran yang sesuai
+- Carrier 45 liter cukup untuk pendakian singkat atau satu malam dengan perlengkapan ringkas.
+- Carrier 60 liter cocok untuk pendakian 2–4 hari yang membawa tenda, alat masak, dan logistik lebih banyak.
+- Carrier yang terlalu besar membuat kita cenderung membawa barang yang tidak perlu.
+
+## Bagian bawah: barang ringan untuk di kemah
+- Sleeping bag yang sudah dimasukkan ke kantong kedap air.
+- Pakaian tidur dan pakaian ganti.
+
+Barang-barang ini baru dibutuhkan saat sampai di lokasi kemah, sekaligus menjadi alas yang empuk untuk isi di atasnya.
+
+## Bagian tengah: barang paling berat
+- Logistik makanan, air cadangan, nesting, dan kompor.
+- Badan tenda tanpa frame, bila muat.
+
+Letakkan barang berat sedekat mungkin dengan punggung, kira-kira setinggi tulang belikat. Titik berat yang dekat dengan tubuh membuat langkah lebih stabil, terutama di jalur menanjak.
+
+## Bagian atas dan kantong kepala
+- Jas hujan, jaket, dan kotak P3K di bagian paling atas.
+- Headlamp, peta, ponsel, tabir surya, dan camilan di kantong kepala (lid).
+
+## Kantong samping dan bagian luar
+- Botol minum di kantong samping agar bisa diambil tanpa melepas carrier.
+- Frame tenda atau trekking pole diikat dengan tali kompresi samping.
+- Hindari menggantung banyak barang di luar karena mudah tersangkut dan membuat beban berayun.
+
+## Atur tali sebelum berjalan
+1. Kencangkan hip belt tepat di atas tulang panggul. Sebagian besar beban seharusnya bertumpu di pinggul, bukan di bahu.
+2. Tarik shoulder strap hingga carrier menempel ke punggung, lalu atur load lifter di atas bahu.
+3. Pasang sternum strap di dada agar strap bahu tidak melorot.
+4. Kencangkan tali kompresi supaya isi tidak bergeser saat berjalan.
+
+Sebagai patokan, usahakan berat total carrier tidak lebih dari sekitar 20% berat badan. Saat mengembalikan carrier sewaan, kosongkan semua kantong dan bersihkan dari tanah atau lumpur agar pemeriksaan kondisi berjalan cepat.',
+'published', NOW() - INTERVAL 2 DAY
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM articles WHERE slug = 'cara-menyusun-isi-carrier');

@@ -13,6 +13,7 @@ use App\Controllers\AccountController;
 use App\Controllers\Admin\AuditLogController as AdminAuditLog;
 use App\Controllers\Admin\UserController as AdminUser;
 use App\Controllers\Api\AvailabilityController;
+use App\Controllers\Api\CatalogController as ApiCatalog;
 use App\Controllers\Api\StatsController as ApiStats;
 use App\Controllers\ArticleController;
 use App\Controllers\StatsController;
@@ -53,6 +54,7 @@ $router->post('/cek-booking', [BookingController::class, 'lookup']);
 // ---- API (JSON) -----------------------------------------------------------
 $router->get('/api/availability', [AvailabilityController::class, 'index']);
 $router->get('/api/stats', [ApiStats::class, 'index']);
+$router->get('/api/katalog', [ApiCatalog::class, 'index']);
 
 // ---- Autentikasi ----------------------------------------------------------
 $router->get('/login', [AuthController::class, 'showLogin'], ['guest']);

@@ -17,12 +17,12 @@ Proteksi rute dilakukan oleh middleware router: `auth` (harus login), `guest` (h
 
 | Kebutuhan dari brief | Implementasi | Lokasi |
 |---|---|---|
-| Info alat, paket, cara reservasi, kontak | Halaman katalog (filter & cari), detail alat, paket, cara reservasi, kontak + FAQ | `/alat`, `/paket`, `/cara-reservasi`, `/kontak` |
+| Info alat, paket, cara reservasi, kontak | Halaman katalog (chip kategori, cari, quick view), detail alat, paket, cara reservasi, kontak + FAQ | `/alat`, `/paket`, `/cara-reservasi`, `/kontak` |
 | Pilih alat, tanggal, jumlah unit, data kontak | Form booking interaktif (alat satuan + paket) | `/sewa` |
 | Validasi stok per rentang tanggal | Perhitungan stok per hari + transaksi berkunci | `App\Models\Availability`, `Booking::create()`, `GET /api/availability` |
-| Minimal 3 artikel | 3 artikel terbit + CRUD artikel | `/artikel`, `/staff/artikel` |
+| Minimal 3 artikel | 4 artikel terbit + CRUD artikel | `/artikel`, `/staff/artikel` |
 | Cek status dengan kode + email/telepon | Form cek booking dengan pembatas percobaan | `/cek-booking` |
-| Status confirmed → kartu pengambilan, QR, checklist | Kartu pengambilan dengan QR + checklist serah terima, bisa dicetak | `/booking/{kode}` |
+| Status confirmed → kartu pengambilan, QR, checklist | Tiket ekspedisi: QR tampil setelah Terkonfirmasi, kartu pengambilan + checklist serah terima, bisa dicetak | `/booking/{kode}` |
 | Pembatalan dengan alasan, status pending/approved/rejected | Pengajuan oleh penyewa, ditinjau staf | `/booking/{kode}` → `/staff/pembatalan` |
 | Grafik penyewaan, pembatalan, pemakaian stok | Chart.js via `GET /api/stats`, bulanan/mingguan | `/statistik`, dashboard staff |
 | Registrasi & login email + password | Registrasi, login, logout, "Ingat saya" | `/register`, `/login` |
@@ -57,7 +57,7 @@ stateDiagram-v2
 | Status | Label di aplikasi | Menahan stok? | Keterangan |
 |---|---|---|---|
 | `pending_payment` | Menunggu Pembayaran | Ya, selama belum lewat batas bayar | Batas bayar 24 jam |
-| `confirmed` | Terkonfirmasi | Ya | Kartu pengambilan + QR tersedia |
+| `confirmed` | Terkonfirmasi | Ya | QR di tiket + kartu pengambilan tersedia |
 | `picked_up` | Sedang Disewa | Ya | Alat di tangan penyewa |
 | `returned` | Sudah Dikembalikan | Tidak | Menunggu penyelesaian (dan penggantian bila ada) |
 | `completed` | Selesai | Tidak | Akhir alur normal |
@@ -107,12 +107,12 @@ sequenceDiagram
 
 1. Setelah booking dibuat, penyewa mendapat **kode booking** (mis. `CG261118-7KQ2`) dan batas bayar 24 jam.
 2. Penyewa membayar melalui simulasi transfer atau e-wallet, atau membayar tunai di lokasi (dicatat staf).
-3. Status menjadi **Terkonfirmasi** dan kartu pengambilan dengan QR tampil.
+3. Status menjadi **Terkonfirmasi**; tiket menampilkan QR dan kartu pengambilan berisi checklist.
 4. Status bisa dicek kapan saja di `/cek-booking` dengan kode + email atau nomor HP. Pesan kesalahan dibuat sama untuk kode atau kontak yang salah, dan percobaan gagal dibatasi, agar kode booking orang lain tidak bisa ditebak.
 
 ### 4.3 Pengambilan alat (serah terima)
 
-1. Penyewa datang pada rentang tanggal sewa dan menunjukkan kartu pengambilan.
+1. Penyewa datang pada rentang tanggal sewa dan menunjukkan tiket (QR) atau kartu pengambilan yang dicetak.
 2. Staf membuka booking, memeriksa setiap alat bersama penyewa, dan mengisi checklist: jumlah **baik** dan **cacat** per alat (harus sama dengan jumlah disewa).
 3. Staf dapat mencatat **deposit** (nominal opsional + catatan, mis. "KTP ditahan").
 4. Status menjadi **Sedang Disewa**.

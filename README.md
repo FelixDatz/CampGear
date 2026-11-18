@@ -13,10 +13,13 @@ Proyek UAS Pemrograman Web — Kelas A PTIK 2024.
 ## Fitur
 
 **Pengunjung & User**
-- Katalog alat (filter kategori, pencarian), detail alat, paket sewa, artikel, cara reservasi, kontak + FAQ.
+- Katalog alat (chip kategori yang menempel saat di-scroll, pencarian, quick view), detail alat, paket sewa, artikel, cara reservasi, kontak + FAQ.
+- **Beranda interaktif:** matahari yang bisa digeser mengatur tema terang/gelap, nama brand di antara lapisan gunung, kartu rencana trip (tanggal + rombongan), grid kategori yang membesar saat disentuh (isi, stok di tanggal trip, tombol ransel), papan isi paket, jalur sewa yang tergambar mengikuti scroll, katalog, contoh tiket ekspedisi, dan altimeter (mdpl) sebagai navigasi section.
+- **Navigasi ringkas:** menu Jelajahi (mega panel) dan Panduan, cek booking lewat popover, pencarian Ctrl+K, tab bar di HP.
+- **Trip & ransel:** tanggal sewa dipilih sekali lalu dipakai di seluruh situs (stok di katalog mengikuti tanggal); alat dan paket bisa dikumpulkan di ransel lalu dibawa ke form booking.
 - Booking alat satuan dan paket dengan **validasi stok per hari** dalam rentang tanggal (cek langsung via AJAX).
 - Pembayaran simulasi, kode booking, batas bayar 24 jam dengan kedaluwarsa otomatis.
-- Cek status booking dengan kode + email/nomor HP; **kartu pengambilan dengan QR** dan checklist serah terima (bisa dicetak).
+- Cek status booking dengan kode + email/nomor HP. Halaman booking berupa **tiket ekspedisi**: stempel dan jejak status, hitung mundur batas bayar, QR setelah dibayar, dan checklist serah terima (bisa dicetak).
 - Pengajuan pembatalan dengan alasan; status *menunggu / disetujui / ditolak* beserta tanggapan dan catatan refund.
 - **Grafik** penyewaan per periode, pembatalan, dan tingkat pemakaian stok (bulanan/mingguan, dengan tampilan tabel).
 - Registrasi, login, "Ingat saya", riwayat penyewaan, status pembatalan, profil, dan ganti password.
@@ -36,8 +39,8 @@ Proyek UAS Pemrograman Web — Kelas A PTIK 2024.
 |---|---|---|
 | Backend | PHP 8.2 native (tanpa framework), arsitektur front controller + MVC ringan | Sesuai materi kuliah; seluruh alur dapat ditelusuri dan dipertanggungjawabkan |
 | Database | MySQL / MariaDB via **MySQLi** (prepared statement, transaksi) | Sesuai materi; mencegah SQL injection dan double booking |
-| Tampilan | Bootstrap 5.3 + Bootstrap Icons | Responsif untuk desktop dan mobile |
-| Interaksi | Vanilla JavaScript (`fetch`, `async/await`), Chart.js 4.4, qrcode.js | AJAX untuk stok & grafik; QR kartu pengambilan |
+| Tampilan | Bootstrap 5.3 + Bootstrap Icons, sistem desain sendiri (`site.css`) dengan tema terang/gelap | Responsif untuk desktop dan mobile; satu radius kartu, kartu kaca, cahaya hover |
+| Interaksi | Vanilla JavaScript (`fetch`, `async/await`, Canvas 2D, Popover API, `<dialog>`, View Transitions, `localStorage`), Chart.js 4.4, qrcode.js, Lenis | AJAX untuk stok, katalog & grafik; ilustrasi langit/gunung; QR kartu pengambilan; scroll halus di beranda |
 | Server | Apache + `.htaccess` (URL rewriting) | XAMPP dan hosting InfinityFree |
 
 Pemetaan lengkap materi kuliah ke kode ada di [docs/pemetaan-materi.md](docs/pemetaan-materi.md).
@@ -102,6 +105,7 @@ Hanya `public/` yang dapat diakses dari web; folder lain diblokir `.htaccess`.
 |---|---|---|
 | GET | `/api/availability?start=YYYY-MM-DD&end=YYYY-MM-DD` | Sisa unit tiap alat dan jumlah set tiap paket untuk seluruh hari dalam rentang. `422` bila rentang melanggar aturan |
 | GET | `/api/stats?period=month\|week&range=6\|8\|12` | Data grafik penyewaan, pembatalan, dan pemakaian stok. Pendapatan hanya untuk Staff/Admin |
+| GET | `/api/katalog` | Daftar ringkas alat, paket, dan artikel untuk pencarian (Ctrl+K) dan ransel |
 
 Form HTML memakai `POST` dengan method spoofing (`_method=PUT/DELETE`) untuk operasi ubah dan hapus.
 
@@ -121,7 +125,7 @@ Form HTML memakai `POST` dengan method spoofing (`_method=PUT/DELETE`) untuk ope
 bash tests/run-all.sh
 ```
 
-Hasil terakhir: **273 pemeriksaan otomatis lulus, 0 gagal**, ditambah 40 pemeriksaan aturan `.htaccess` di Apache dan uji responsif 31 halaman. Pengujian memakai database terpisah `campgear_test`. Detail: [docs/pengujian.md](docs/pengujian.md) · [tests/README.md](tests/README.md).
+Hasil terakhir: **312 pemeriksaan otomatis lulus, 0 gagal**, ditambah 40 pemeriksaan aturan `.htaccess` di Apache dan uji responsif 31 halaman. Pengujian memakai database terpisah `campgear_test`. Detail: [docs/pengujian.md](docs/pengujian.md) · [tests/README.md](tests/README.md).
 
 ## Dokumentasi
 

@@ -8,7 +8,7 @@ Database relasional MySQL/MariaDB (InnoDB, `utf8mb4_unicode_ci`) dengan 16 tabel
 |---|---|---|
 | `database/schema.sql` | Struktur 16 tabel. **Menghapus tabel lama** sebelum membuat ulang | Instalasi baru |
 | `database/seed.sql` | 3 akun demo, 6 kategori, 15 alat, 3 paket | Instalasi baru, setelah schema |
-| `database/seed_articles.sql` | 3 artikel informatif; idempoten (`WHERE NOT EXISTS`) | Instalasi baru, atau ditambahkan ke database yang sudah ada |
+| `database/seed_articles.sql` | 4 artikel informatif; idempoten (`WHERE NOT EXISTS`) | Instalasi baru, atau ditambahkan ke database yang sudah ada |
 | `database/demo_data.sql` | ±195 booking contoh (6 bulan, semua status) dengan tanggal relatif `CURDATE()` | Opsional, hanya pada database baru (untuk grafik & demo) |
 | `database/setup.php` | Menjalankan file di atas lewat CLI | Pengembangan lokal |
 | `database/tools/generate-demo.php` | Pembuat `demo_data.sql` | Bila data demo perlu dibuat ulang |

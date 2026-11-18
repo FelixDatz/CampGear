@@ -33,25 +33,12 @@ final class Equipment
         return Database::select($sql, $params);
     }
 
-    public static function featured(int $limit = 6): array
-    {
-        return Database::select(
-            self::SELECT_WITH_CATEGORY . ' WHERE e.is_active = 1 ORDER BY e.id LIMIT ?',
-            [$limit],
-        );
-    }
-
     public static function findActiveBySlug(string $slug): ?array
     {
         return Database::first(
             self::SELECT_WITH_CATEGORY . ' WHERE e.slug = ? AND e.is_active = 1',
             [$slug],
         );
-    }
-
-    public static function countActive(): int
-    {
-        return (int) Database::value('SELECT COUNT(*) FROM equipment WHERE is_active = 1');
     }
 
     // ---- Panel staff (CRUD) -----------------------------------------------

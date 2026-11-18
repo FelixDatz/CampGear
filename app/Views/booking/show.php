@@ -1,5 +1,8 @@
 <?php
 /**
+ * Detail booking sebagai "tiket ekspedisi": tiket di kiri, perjalanan status di kanan,
+ * lalu kartu pengambilan, rincian alat, pembatalan, dan ringkasan di bawahnya.
+ *
  * @var array $booking
  * @var App\Enums\BookingStatus $status
  * @var array $items
@@ -24,38 +27,107 @@ $timeline = [
 if ($booking['cancelled_at']) {
     $timeline[] = ['Dibatalkan', $booking['cancelled_at']];
 }
+
+// Perjalanan status normal. Kedaluwarsa dan Dibatalkan menghentikan perjalanan
+// di langkah terakhir yang sempat dicapai.
+$steps = [BookingStatus::PendingPayment, BookingStatus::Confirmed, BookingStatus::PickedUp, BookingStatus::Returned, BookingStatus::Completed];
+$stopped = in_array($status, [BookingStatus::Expired, BookingStatus::Cancelled], true);
+$now = $stopped ? -1 : (int) array_search($status, $steps, true);
+$reached = $now;
+if ($stopped) {
+    foreach (array_slice($timeline, 0, 5) as $i => [, $time]) {
+        if ($time !== null) {
+            $reached = $i;
+        }
+    }
+}
+$tone = match ($status) {
+    BookingStatus::PendingPayment => 'warn',
+    BookingStatus::Confirmed, BookingStatus::PickedUp => 'accent',
+    BookingStatus::Completed => 'ok',
+    BookingStatus::Cancelled => 'bad',
+    default => 'muted',
+};
+// Teks stempel dibuat pendek supaya muat di tengah garis Ambil → Kembali.
+$stampText = match ($status) {
+    BookingStatus::PendingPayment => 'Menunggu bayar',
+    BookingStatus::Confirmed      => 'Terkonfirmasi',
+    BookingStatus::PickedUp       => 'Sedang disewa',
+    BookingStatus::Returned       => 'Dikembalikan',
+    BookingStatus::Completed      => 'Selesai',
+    BookingStatus::Cancelled      => 'Dibatalkan',
+    BookingStatus::Expired        => 'Kedaluwarsa',
+};
+
+// Isi tiket: nama paket, ditambah jumlah unit alat satuan.
+$packageNames = array_values(array_unique(array_filter(array_column($items, 'package_name'))));
+$looseUnits = 0;
+foreach ($items as $item) {
+    $looseUnits += $item['package_name'] ? 0 : (int) $item['quantity'];
+}
+$isi = implode(' + ', $packageNames);
+if ($looseUnits > 0) {
+    $isi .= ($isi !== '' ? ' + ' : '') . $looseUnits . ' alat';
+}
+
+[$stub, $stubIcon, $stubText] = match ($status) {
+    BookingStatus::Confirmed      => ['qr', null, null],
+    BookingStatus::PendingPayment => ['locked', null, null],
+    BookingStatus::PickedUp       => ['icon', 'bi-backpack', 'Alat sedang dibawa'],
+    BookingStatus::Returned       => ['icon', 'bi-arrow-return-left', 'Alat sudah kembali'],
+    BookingStatus::Completed      => ['icon', 'bi-check2-circle', 'Perjalanan selesai'],
+    default                       => ['icon', 'bi-slash-circle', 'Tiket tidak berlaku'],
+};
+$unsettled = count(array_filter($damages, static fn ($d) => $d['status'] === 'unsettled'));
+$remaining = $status === BookingStatus::PendingPayment ? max(0, strtotime((string) $booking['payment_due_at']) - time()) : 0;
 ?>
-<section class="page-header d-print-none">
+<section class="tiket-page">
     <div class="container">
-        <nav aria-label="breadcrumb">
-            <ol class="breadcrumb mb-2">
+        <nav aria-label="breadcrumb" class="d-print-none">
+            <ol class="breadcrumb mb-3">
                 <li class="breadcrumb-item"><a href="<?= url('/') ?>">Beranda</a></li>
                 <li class="breadcrumb-item"><a href="<?= url('/cek-booking') ?>">Cek Booking</a></li>
                 <li class="breadcrumb-item active" aria-current="page"><?= e($booking['code']) ?></li>
             </ol>
         </nav>
-        <div class="d-flex flex-wrap align-items-center gap-2">
-            <h1 class="h2 mb-0">Booking <span class="font-monospace"><?= e($booking['code']) ?></span></h1>
-            <button class="btn btn-sm btn-outline-secondary" type="button" data-copy="<?= e($booking['code']) ?>" aria-label="Salin kode booking">
-                <i class="bi bi-clipboard"></i> Salin
-            </button>
-            <span class="badge fs-6 <?= e($status->badgeClass()) ?>"><?= e($status->label()) ?></span>
-        </div>
-        <p class="text-muted mb-0 mt-1">Dibuat <?= e(tanggal($booking['created_at'], true, true)) ?></p>
-    </div>
-</section>
 
-<div class="container py-4">
-    <div class="row g-4">
-        <div class="col-lg-8">
+        <div class="tiket-grid">
+            <?php App\Core\View::partial('ticket', ['t' => [
+                'code'     => $booking['code'],
+                'start'    => tanggal_singkat($booking['start_date']),
+                'startSub' => hari($booking['start_date']) . ' ' . date('Y', strtotime($booking['start_date'])),
+                'end'      => tanggal_singkat($booking['end_date']),
+                'endSub'   => hari($booking['end_date']) . ' · paling lambat',
+                'days'     => (int) $booking['total_days'] . ' hari',
+                'isi'      => $isi,
+                'total'    => rupiah($booking['grand_total']),
+                'stamp'    => $stampText,
+                'tone'     => $tone,
+                'stub'     => $stub,
+                'stubIcon' => $stubIcon,
+                'stubText' => $stubText,
+            ]]) ?>
 
-            <?php if ($status === BookingStatus::PendingPayment): ?>
-                <div class="card border-warning mb-3 d-print-none">
-                    <div class="card-body">
-                        <h2 class="h5"><i class="bi bi-credit-card text-warning me-1"></i> Selesaikan pembayaran</h2>
-                        <p class="mb-3">Bayar <strong><?= rupiah($booking['grand_total']) ?></strong> sebelum
+            <div class="status d-print-none">
+                <ol class="status-trail<?= $stopped ? ' is-stopped' : '' ?>" style="--prog: <?= round(max(0, $reached) / 4, 2) ?>" aria-label="Perjalanan status booking">
+                    <?php foreach ($steps as $i => $step):
+                        $class = ($i < $reached || ($stopped && $i === $reached)) ? 'is-done' : ($i === $now ? 'is-now' : '');
+                    ?>
+                        <li class="<?= $class ?>"<?= $i === $now ? ' aria-current="step"' : '' ?>><span class="st-dot" aria-hidden="true"></span><span class="st-label"><?= e($step->label()) ?></span></li>
+                    <?php endforeach ?>
+                </ol>
+
+                <div class="status-now" data-tone="<?= $tone ?>">
+                    <p class="eyebrow">Status sekarang</p>
+                    <h2><?= e($status->label()) ?></h2>
+                    <?php if ($status === BookingStatus::PendingPayment): ?>
+                        <p>Bayar <strong><?= rupiah($booking['grand_total']) ?></strong> sebelum
                             <strong><?= e(tanggal($booking['payment_due_at'], true, true)) ?> WIB</strong>.
                             Lewat dari itu booking otomatis kedaluwarsa dan stok dilepas.</p>
+                        <div class="countdown">
+                            <span class="mono" data-countdown="<?= $remaining ?>"><?= sprintf('%02d:%02d:%02d', intdiv($remaining, 3600), intdiv($remaining % 3600, 60), $remaining % 60) ?></span>
+                            <span class="small text-muted" data-countdown-label>sisa waktu bayar</span>
+                        </div>
                         <form method="post" action="<?= url('/booking/' . $booking['code'] . '/bayar') ?>">
                             <?= csrf_field() ?>
                             <div class="row g-2 mb-3">
@@ -68,60 +140,56 @@ if ($booking['cancelled_at']) {
                                     </div>
                                 <?php endforeach ?>
                             </div>
-                            <button class="btn btn-primary btn-lg" type="submit"><i class="bi bi-lock me-1"></i> Bayar Sekarang</button>
+                            <button class="btn btn-cta btn-lg" type="submit"><i class="bi bi-lock me-1"></i> Bayar Sekarang</button>
                             <p class="small text-muted mt-2 mb-0">Ini simulasi pembayaran (sandbox). Tidak ada uang sungguhan yang ditransfer.</p>
                         </form>
-                    </div>
+                    <?php elseif ($status === BookingStatus::Confirmed): ?>
+                        <p>Tunjukkan tiket ini saat mengambil alat pada <strong><?= e(hari($booking['start_date'])) ?>, <?= e(tanggal($booking['start_date'], true)) ?></strong>
+                            di <?= e($business['address']) ?> (<?= e($business['hours']) ?>). Kondisi setiap alat dicek bersama staf.</p>
+                        <div class="status-actions">
+                            <button class="btn btn-outline-primary" type="button" data-print><i class="bi bi-printer me-1" aria-hidden="true"></i> Cetak kartu</button>
+                            <a class="btn btn-link px-0" href="#pickup-card">Lihat checklist serah terima</a>
+                        </div>
+                    <?php elseif ($status === BookingStatus::PickedUp): ?>
+                        <p>Alat sedang kamu sewa. Kembalikan paling lambat <strong><?= e(hari($booking['end_date'])) ?>, <?= e(tanggal($booking['end_date'], true)) ?></strong>.</p>
+                    <?php elseif ($status === BookingStatus::Returned): ?>
+                        <p>Alat sudah dikembalikan pada <?= e(tanggal($booking['returned_at'], true, true)) ?>.
+                            <?php if ($unsettled > 0): ?>
+                                Ada <strong><?= $unsettled ?> laporan kerusakan/kehilangan</strong> yang wajib diselesaikan sebelum booking dinyatakan selesai.
+                            <?php else: ?>
+                                Booking akan dinyatakan selesai oleh staf.
+                            <?php endif ?>
+                        </p>
+                    <?php elseif ($status === BookingStatus::Completed): ?>
+                        <p>Booking selesai. Terima kasih telah menyewa di <?= e(config('app.name')) ?>!</p>
+                    <?php elseif ($status === BookingStatus::Expired): ?>
+                        <p>Booking ini kedaluwarsa karena tidak dibayar sampai <?= e(tanggal($booking['payment_due_at'], true, true)) ?>. Stok sudah dilepas.
+                            <a href="<?= url('/sewa') ?>">Buat booking baru</a>.</p>
+                    <?php elseif ($status === BookingStatus::Cancelled): ?>
+                        <p>Booking ini telah dibatalkan pada <?= e(tanggal($booking['cancelled_at'], true, true)) ?>.
+                            Tanggapan staf dan catatan refund ada di bagian <a href="#pembatalan">Pembatalan</a>.</p>
+                    <?php endif ?>
                 </div>
-            <?php elseif ($status === BookingStatus::Expired): ?>
-                <div class="alert alert-secondary d-flex gap-2">
-                    <i class="bi bi-hourglass-bottom flex-shrink-0 mt-1"></i>
-                    <div>Booking ini kedaluwarsa karena tidak dibayar sampai <?= e(tanggal($booking['payment_due_at'], true, true)) ?>. Stok sudah dilepas.
-                        <a href="<?= url('/sewa') ?>">Buat booking baru</a>.</div>
-                </div>
-            <?php elseif ($status === BookingStatus::Cancelled): ?>
-                <div class="alert alert-danger d-flex gap-2">
-                    <i class="bi bi-x-octagon flex-shrink-0 mt-1"></i>
-                    <div>Booking ini telah dibatalkan pada <?= e(tanggal($booking['cancelled_at'], true, true)) ?>.</div>
-                </div>
-            <?php elseif ($status === BookingStatus::PickedUp): ?>
-                <div class="alert alert-info d-flex gap-2">
-                    <i class="bi bi-backpack flex-shrink-0 mt-1"></i>
-                    <div>Alat sedang kamu sewa. Kembalikan paling lambat <strong><?= e(tanggal($booking['end_date'], true)) ?></strong>.</div>
-                </div>
-            <?php elseif ($status === BookingStatus::Returned): ?>
-                <?php $unsettled = count(array_filter($damages, static fn ($d) => $d['status'] === 'unsettled')); ?>
-                <div class="alert <?= $unsettled > 0 ? 'alert-warning' : 'alert-secondary' ?> d-flex gap-2">
-                    <i class="bi bi-arrow-return-left flex-shrink-0 mt-1"></i>
-                    <div>Alat sudah dikembalikan pada <?= e(tanggal($booking['returned_at'], true, true)) ?>.
-                        <?php if ($unsettled > 0): ?>
-                            Ada <strong><?= $unsettled ?> laporan kerusakan/kehilangan</strong> yang wajib diselesaikan sebelum booking dinyatakan selesai.
-                        <?php else: ?>
-                            Booking akan dinyatakan selesai oleh staf.
-                        <?php endif ?>
-                    </div>
-                </div>
-            <?php elseif ($status === BookingStatus::Completed): ?>
-                <div class="alert alert-success d-flex gap-2">
-                    <i class="bi bi-check2-circle flex-shrink-0 mt-1"></i>
-                    <div>Booking selesai. Terima kasih telah menyewa di <?= e(config('app.name')) ?>!</div>
-                </div>
-            <?php endif ?>
+
+                <?php if (in_array($status, [BookingStatus::PendingPayment, BookingStatus::Confirmed], true)): ?>
+                    <p class="status-exit">Booking juga bisa berakhir sebagai <b>Kedaluwarsa</b> (tidak dibayar dalam <?= (int) config('rental.payment_window_hours', 24) ?> jam)
+                        atau <b>Dibatalkan</b> (pengajuan pembatalan disetujui staf).</p>
+                <?php endif ?>
+                <p class="status-exit">Dibuat <?= e(tanggal($booking['created_at'], true, true)) ?></p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<div class="container pb-5">
+    <div class="row g-4">
+        <div class="col-lg-8">
 
             <?php if ($status === BookingStatus::Confirmed): ?>
-                <!-- Kartu pengambilan: yang tercetak saat tombol cetak ditekan -->
+                <!-- Kartu pengambilan: ikut tercetak bersama tiket saat tombol cetak ditekan -->
                 <div class="card pickup-card mb-3" id="pickup-card">
                     <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
-                            <div>
-                                <div class="small text-uppercase fw-semibold text-muted"><?= e(config('app.name')) ?> · Kartu Pengambilan Alat</div>
-                                <div class="display-6 font-monospace fw-bold my-1"><?= e($booking['code']) ?></div>
-                                <span class="badge text-bg-primary"><i class="bi bi-patch-check"></i> Terkonfirmasi</span>
-                            </div>
-                            <div class="qr-box" data-qr="<?= e($booking['code']) ?>" role="img" aria-label="QR kode booking <?= e($booking['code']) ?>">
-                                <noscript><span class="small">QR memerlukan JavaScript</span></noscript>
-                            </div>
-                        </div>
+                        <div class="small text-uppercase fw-semibold text-muted"><?= e(config('app.name')) ?> · Kartu Pengambilan Alat · <span class="font-monospace"><?= e($booking['code']) ?></span></div>
 
                         <dl class="row small mt-3 mb-0">
                             <dt class="col-sm-4 text-muted fw-normal">Nama penyewa</dt><dd class="col-sm-8"><?= e($booking['customer_name']) ?></dd>
@@ -154,7 +222,7 @@ if ($booking['cancelled_at']) {
                             <div class="col">Petugas<div class="signature-line"></div></div>
                             <div class="col">Penyewa<div class="signature-line"></div></div>
                         </div>
-                        <button class="btn btn-outline-primary mt-3 d-print-none" type="button" onclick="window.print()"><i class="bi bi-printer me-1"></i> Cetak kartu</button>
+                        <button class="btn btn-outline-primary mt-3 d-print-none" type="button" data-print><i class="bi bi-printer me-1" aria-hidden="true"></i> Cetak kartu</button>
                     </div>
                 </div>
             <?php endif ?>
@@ -218,7 +286,7 @@ if ($booking['cancelled_at']) {
                                 </div>
                                 <p class="mb-1 mt-1"><?= nl2br(e($request['reason'])) ?></p>
                                 <?php if ($request['status'] !== 'pending'): ?>
-                                    <div class="small bg-light rounded p-2">
+                                    <div class="small bg-body-tertiary rounded p-2">
                                         <div><strong>Tanggapan staf</strong> · <?= e(tanggal($request['reviewed_at'], false, true)) ?></div>
                                         <?php if ($request['review_note']): ?><div><?= nl2br(e($request['review_note'])) ?></div><?php endif ?>
                                         <?php if ($request['status'] === 'approved'): ?>

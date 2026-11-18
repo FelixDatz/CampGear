@@ -7,6 +7,7 @@
  * @var array $contact
  * @var string $today
  * @var string $maxStart
+ * @var array $prefill tanggal awal dari trip: ["start" => Y-m-d, "end" => Y-m-d]
  */
 $byCategory = [];
 foreach ($equipment as $item) {
@@ -54,14 +55,14 @@ $qty = static fn (array $selected, int $id): int => max(0, (int) ($selected[$id]
                             <div class="col-sm-6">
                                 <label class="form-label" for="start_date">Tanggal mulai (ambil alat)</label>
                                 <input class="form-control<?= invalid('start_date') ?><?= error('dates') ? ' is-invalid' : '' ?>" type="date"
-                                       id="start_date" name="start_date" value="<?= e(old('start_date')) ?>"
+                                       id="start_date" name="start_date" value="<?= e(old('start_date', $prefill['start'])) ?>"
                                        min="<?= e($today) ?>" max="<?= e($maxStart) ?>" required>
                                 <?php if ($msg = error('start_date')): ?><div class="invalid-feedback"><?= e($msg) ?></div><?php endif ?>
                             </div>
                             <div class="col-sm-6">
                                 <label class="form-label" for="end_date">Tanggal selesai (kembalikan alat)</label>
                                 <input class="form-control<?= invalid('end_date') ?><?= error('dates') ? ' is-invalid' : '' ?>" type="date"
-                                       id="end_date" name="end_date" value="<?= e(old('end_date')) ?>"
+                                       id="end_date" name="end_date" value="<?= e(old('end_date', $prefill['end'])) ?>"
                                        min="<?= e($today) ?>" required>
                                 <?php if ($msg = error('end_date')): ?><div class="invalid-feedback"><?= e($msg) ?></div><?php endif ?>
                             </div>

@@ -16,17 +16,17 @@
 
     <div class="row g-4 g-lg-5">
         <div class="col-lg-6">
-            <div class="gear-thumb gear-thumb-lg rounded-4">
+            <div class="gear-thumb gear-thumb-lg">
                 <?php if ($image = upload_url($item['image'])): ?>
                     <img src="<?= e($image) ?>" alt="<?= e($item['name']) ?>">
                 <?php else: ?>
-                    <i class="bi <?= e($item['category_icon'] ?: 'bi-box') ?>"></i>
+                    <?php App\Core\View::partial('gear-glyph', ['item' => $item]) ?>
                 <?php endif ?>
             </div>
         </div>
 
         <div class="col-lg-6">
-            <span class="badge text-bg-light border mb-2"><?= e($item['category_name']) ?></span>
+            <span class="tag mb-2"><?= e($item['category_name']) ?></span>
             <h1 class="h2"><?= e($item['name']) ?></h1>
             <p class="mb-4"><span class="price fs-3"><?= rupiah($item['daily_rate']) ?></span> <span class="text-muted">per unit / hari</span></p>
 
@@ -43,9 +43,12 @@
                 <div>Ketersediaan stok dicek untuk setiap hari dalam tanggal sewa yang kamu pilih. Kondisi alat dicatat saat diambil dan saat dikembalikan.</div>
             </div>
 
+            <p class="mb-3"><button type="button" class="avail-line" data-trip-open data-avail-id="<?= (int) $item['id'] ?>" data-avail-empty="Pilih tanggal sewa untuk cek stok">Pilih tanggal sewa untuk cek stok</button></p>
+
             <div class="d-flex flex-wrap gap-2">
-                <a class="btn btn-primary btn-lg" href="<?= url('/sewa', ['alat' => $item['slug']]) ?>"><i class="bi bi-calendar-check me-1"></i> Sewa alat ini</a>
+                <a class="btn btn-primary btn-lg" href="<?= url('/sewa', ['alat' => $item['slug']]) ?>" data-sewa-link><i class="bi bi-calendar-check me-1"></i> Sewa alat ini</a>
                 <a class="btn btn-outline-primary btn-lg" href="<?= url('/alat', ['kategori' => $item['category_slug']]) ?>">Alat sejenis</a>
+                <button type="button" class="btn btn-cta btn-lg btn-ransel" data-ransel-add="item:<?= (int) $item['id'] ?>" data-name="<?= e($item['name']) ?>"><i class="bi bi-backpack" aria-hidden="true"></i> Masukkan ke ransel</button>
             </div>
 
             <?php if ($packages !== []): ?>

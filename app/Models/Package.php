@@ -20,6 +20,31 @@ final class Package
     }
 
     /** Paket aktif yang memuat alat tertentu. */
+    /** Paket aktif yang semua alatnya masih aktif, sehingga bisa disewa. */
+    public static function available(): array
+    {
+        return array_values(array_filter(self::activeWithItems(), static fn (array $p): bool => $p['is_available']));
+    }
+
+    /**
+     * Peta equipment_id => daftar paket (id, name, slug) yang memuat alat itu.
+     * Dipakai quick view katalog ("termasuk dalam paket") dan kartu kategori di beranda.
+     */
+    public static function mapByEquipment(array $packages): array
+    {
+        $map = [];
+        foreach ($packages as $package) {
+            foreach ($package['items'] as $item) {
+                $map[(int) $item['equipment_id']][] = [
+                    'id'   => (int) $package['id'],
+                    'name' => $package['name'],
+                    'slug' => $package['slug'],
+                ];
+            }
+        }
+        return $map;
+    }
+
     public static function containingEquipment(int $equipmentId): array
     {
         return Database::select(

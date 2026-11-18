@@ -42,7 +42,12 @@ final class BookingController
 
     // ---- Buat booking -----------------------------------------------------
 
-    /** GET /sewa  (opsional ?alat=slug atau ?paket=slug untuk memilih langsung) */
+    /**
+     * GET /sewa
+     * Opsional: ?alat=slug atau ?paket=slug untuk memilih langsung; dari ransel
+     * ?items[id]=jumlah & ?packages[id]=jumlah; tanggal trip ?mulai=Y-m-d & ?selesai=Y-m-d.
+     * Semua nilai ini hanya pengisi awal form. Validasi tetap dilakukan di store().
+     */
     public function create(): void
     {
         $equipment = Equipment::active();
@@ -53,17 +58,35 @@ final class BookingController
         $selectedItems = is_array($old['items'] ?? null) ? $old['items'] : [];
         $selectedPackages = is_array($old['packages'] ?? null) ? $old['packages'] : [];
         if ($old === []) {
+            $equipmentIds = [];
             foreach ($equipment as $item) {
+                $equipmentIds[(int) $item['id']] = true;
                 if ($item['slug'] === Request::query('alat')) {
                     $selectedItems[$item['id']] = 1;
                 }
             }
+            $packageIds = [];
             foreach ($packages as $package) {
-                if ($package['slug'] === Request::query('paket') && $package['is_available']) {
+                if (!$package['is_available']) {
+                    continue;
+                }
+                $packageIds[(int) $package['id']] = true;
+                if ($package['slug'] === Request::query('paket')) {
                     $selectedPackages[$package['id']] = 1;
                 }
             }
+            foreach (Request::queryInts('items') as $id => $quantity) {
+                if (isset($equipmentIds[$id])) {
+                    $selectedItems[$id] = $quantity;
+                }
+            }
+            foreach (Request::queryInts('packages') as $id => $quantity) {
+                if (isset($packageIds[$id])) {
+                    $selectedPackages[$id] = $quantity;
+                }
+            }
         }
+        $prefill = ['start' => Request::queryDate('mulai'), 'end' => Request::queryDate('selesai')];
 
         // Pelanggan yang login: data kontak diisi otomatis. Staff membuat booking untuk orang lain.
         $user = Auth::user();
@@ -78,6 +101,7 @@ final class BookingController
             'selectedItems'    => $selectedItems,
             'selectedPackages' => $selectedPackages,
             'contact'          => $contact,
+            'prefill'          => $prefill,
             'today'            => date('Y-m-d'),
             'maxStart'         => date('Y-m-d', strtotime('+' . (int) config('rental.max_advance_days', 90) . ' days')),
             'pageScripts'      => ['js/booking.js'],

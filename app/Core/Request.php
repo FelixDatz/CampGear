@@ -40,6 +40,39 @@ final class Request
         return is_string($value) ? trim($value) : $default;
     }
 
+    /**
+     * Pasangan id => jumlah dari query string berbentuk array, mis. ?items[3]=2&items[7]=1.
+     * Hanya id dan jumlah berupa bilangan bulat positif yang diambil; jumlah dibatasi $max.
+     *
+     * @return array<int, int>
+     */
+    public static function queryInts(string $key, int $max = 99): array
+    {
+        $values = $_GET[$key] ?? [];
+        if (!is_array($values)) {
+            return [];
+        }
+        $result = [];
+        foreach ($values as $id => $quantity) {
+            $id = filter_var($id, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+            $quantity = is_string($quantity) ? filter_var($quantity, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]) : false;
+            if ($id !== false && $quantity !== false) {
+                $result[$id] = min($quantity, $max);
+            }
+        }
+        return $result;
+    }
+
+    /** Tanggal Y-m-d yang valid dari query string, atau string kosong. */
+    public static function queryDate(string $key): string
+    {
+        $value = self::query($key);
+        if (!preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', $value, $m)) {
+            return '';
+        }
+        return checkdate((int) $m[2], (int) $m[3], (int) $m[1]) ? $value : '';
+    }
+
     public static function isApi(): bool
     {
         return str_starts_with(self::path(), '/api/');

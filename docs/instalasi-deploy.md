@@ -9,7 +9,7 @@
 | Web server | Apache dengan `mod_rewrite` (XAMPP / hosting), atau server bawaan PHP untuk pengembangan |
 | Browser | Browser modern dengan JavaScript aktif (Chrome, Edge, Firefox, Safari) |
 
-Tidak ada dependensi Composer maupun npm. Bootstrap 5.3, Bootstrap Icons, Chart.js 4.4, dan qrcode.js dimuat dari CDN.
+Tidak ada dependensi Composer maupun npm. Bootstrap 5.3, Bootstrap Icons, Chart.js 4.4, qrcode.js, dan Lenis (khusus beranda) dimuat dari CDN; font dari Google Fonts.
 
 ## A. Instalasi Lokal (XAMPP)
 

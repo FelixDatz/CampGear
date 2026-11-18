@@ -12,7 +12,13 @@ use App\Models\Package;
 
 final class CatalogController
 {
-    /** GET /alat?kategori=tenda&q=dome */
+    /**
+     * GET /alat?kategori=tenda&q=dome
+     *
+     * Semua alat hasil pencarian dikirim ke tampilan. Kategori hanya menandai kartu mana
+     * yang tampil, sehingga chip kategori bisa berganti tanpa memuat ulang halaman
+     * (katalog.js). Tanpa JavaScript, kartu kategori lain tetap tersembunyi.
+     */
     public function index(): void
     {
         $categorySlug = Request::query('kategori');
@@ -24,11 +30,13 @@ final class CatalogController
         }
 
         view('catalog/index', [
-            'title'      => $category ? $category['name'] : 'Katalog Alat',
-            'categories' => Category::allWithCounts(),
-            'category'   => $category,
-            'search'     => $search,
-            'items'      => Equipment::active($category ? (int) $category['id'] : null, $search),
+            'title'          => $category ? $category['name'] : 'Katalog Alat',
+            'categories'     => Category::allWithCounts(),
+            'category'       => $category,
+            'search'         => $search,
+            'items'          => Equipment::active(null, $search),
+            'packagesByItem' => Package::mapByEquipment(Package::available()),
+            'pageScripts'    => ['js/katalog.js'],
         ]);
     }
 

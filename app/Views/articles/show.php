@@ -32,9 +32,9 @@
             <div class="cta-box mt-5">
                 <div>
                     <h2 class="h5 mb-1">Siap berangkat?</h2>
-                    <p class="mb-0 text-white-75">Cek ketersediaan alat untuk tanggal perjalananmu.</p>
+                    <p class="mb-0">Cek ketersediaan alat untuk tanggal perjalananmu.</p>
                 </div>
-                <a class="btn btn-accent" href="<?= url('/sewa') ?>"><i class="bi bi-calendar-check me-1"></i> Sewa Sekarang</a>
+                <a class="btn btn-cta" href="<?= url('/sewa') ?>" data-sewa-link><i class="bi bi-calendar-check me-1"></i> Sewa Sekarang</a>
             </div>
         </div>
     </div>

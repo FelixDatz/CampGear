@@ -12,7 +12,20 @@
     if (!root) return;
 
     const COLORS = { series1: '#2a78d6', series2: '#eb6834', series3: '#1baf7a' };
-    const INK = { muted: '#898781', grid: '#e1e0d9', axis: '#c3c2b7', surface: '#ffffff' };
+    // Warna netral grafik. Halaman publik menyediakan --chart-* (ikut tema terang/gelap); panel memakai nilai bawaan.
+    const INK = {};
+    function readInk() {
+        const css = getComputedStyle(document.documentElement);
+        const pick = (name, fallback) => css.getPropertyValue(name).trim() || fallback;
+        Object.assign(INK, {
+            muted: pick('--chart-muted', '#898781'),
+            grid: pick('--chart-grid', '#e1e0d9'),
+            axis: pick('--chart-axis', '#c3c2b7'),
+            surface: pick('--chart-surface', '#ffffff'),
+        });
+        if (window.Chart) Chart.defaults.color = INK.muted;
+    }
+    readInk();
     const RANGES = { month: [6, 12], week: [8, 12] };
     const CANCEL_LABELS = { approved: 'Disetujui', rejected: 'Ditolak', pending: 'Menunggu' };
 
@@ -29,7 +42,6 @@
 
     if (window.Chart) {
         Chart.defaults.font.family = getComputedStyle(document.body).fontFamily;
-        Chart.defaults.color = INK.muted;
         Chart.defaults.plugins.tooltip.padding = 10;
         Chart.defaults.plugins.tooltip.boxPadding = 4;
     }
@@ -70,7 +82,9 @@
 
     // ---- Tampilan ----------------------------------------------------------
 
+    let lastData = null;
     function render(data) {
+        lastData = data;
         rangeLabel.textContent = `${formatDate(data.from)} – ${formatDate(data.to)}`;
         setTotal('rentals', number(data.totals.rentals));
         setTotal('cancellations', number(data.totals.cancellations));
@@ -197,6 +211,9 @@
         });
         holder.replaceChildren(tableEl);
     }
+
+    // Tema halaman publik berganti (matahari digeser): gambar ulang dengan warna baru.
+    document.addEventListener('campgear:theme', () => { readInk(); if (lastData) render(lastData); });
 
     fillRanges();
     // Tunggu font web siap agar Chart.js mengukur lebar label dengan font yang benar.

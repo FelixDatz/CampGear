@@ -12,7 +12,7 @@ form() { local jar="$1" path="$2" tp="$3"; shift 3; local t; t="$(tok "$jar" "$t
 
 echo "== Artikel publik"
 curl -s "$BASE/artikel" -o "$TMP/a.html"
-check "3 artikel terbit tampil" 3 "$(grep -c 'class="card article-card' "$TMP/a.html")"
+check "4 artikel terbit tampil" 4 "$(grep -c 'class="card article-card' "$TMP/a.html")"
 check "detail artikel" 200 "$(status "$BASE/artikel/cara-memasang-dan-merawat-tenda-dome")"
 curl -s "$BASE/artikel/cara-memasang-dan-merawat-tenda-dome" -o "$TMP/ad.html"
 contains "format subjudul -> h2" "<h2>Memilih lokasi</h2>" "$TMP/ad.html"
@@ -20,6 +20,8 @@ contains "format daftar -> li" "<li>Cari permukaan datar" "$TMP/ad.html"
 contains "format tebal" "<strong>Jangan pernah menyimpan tenda" "$TMP/ad.html"
 curl -s "$BASE/" -o "$TMP/home.html"
 contains "beranda menampilkan artikel terbaru" "Artikel Terbaru" "$TMP/home.html"
+check "beranda menampilkan 4 artikel" 4 "$(grep -c 'class="catatan-item"' "$TMP/home.html")"
+check "artikel keempat (carrier)" 200 "$(status "$BASE/artikel/cara-menyusun-isi-carrier")"
 
 echo "== Artikel CRUD (staff)"
 BODY=$'Paragraf pertama artikel uji yang cukup panjang untuk lolos validasi minimal lima puluh karakter.\n\n## Subjudul Uji\n- butir satu\n- butir dua\n\n<script>alert(1)</script> **tebal**'

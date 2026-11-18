@@ -144,6 +144,27 @@ function tanggal(?string $date, bool $long = false, bool $withTime = false): str
     return $withTime ? $text . ', ' . date('H.i', $time) : $text;
 }
 
+/** Tanggal tanpa tahun untuk tiket booking: 21 Nov. */
+function tanggal_singkat(?string $date): string
+{
+    $time = $date ? strtotime($date) : false;
+    if ($time === false) {
+        return '-';
+    }
+    $months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+    return date('j', $time) . ' ' . $months[(int) date('n', $time) - 1];
+}
+
+/** Nama hari dalam bahasa Indonesia: Senin, Selasa, ... */
+function hari(?string $date): string
+{
+    $time = $date ? strtotime($date) : false;
+    if ($time === false) {
+        return '-';
+    }
+    return ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'][(int) date('w', $time)];
+}
+
 /** Penanda menu aktif di navigasi. */
 function nav_active(string $prefix): string
 {
@@ -238,6 +259,31 @@ function parse_money(mixed $value): ?float
     $clean = str_replace(['.', ' ', 'Rp', 'rp'], '', trim($value));
     $clean = str_replace(',', '.', $clean);
     return is_numeric($clean) ? round((float) $clean, 2) : null;
+}
+
+/**
+ * Jenis ilustrasi SVG untuk alat (partial gear-glyph), ditentukan dari kata pada nama/slug.
+ * Dipakai bila alat belum punya foto dan pada papan isi paket di beranda.
+ */
+function gear_kind(string $name): string
+{
+    $n = strtolower($name);
+    return match (true) {
+        str_contains($n, 'lampu') || str_contains($n, 'lentera') => 'lantern',
+        str_contains($n, 'tenda') && (str_contains($n, 'family') || str_contains($n, 'keluarga') || preg_match('/\b([5-9]|1\d)\s*orang/', $n) === 1) => 'tent-l',
+        str_contains($n, 'tenda') => 'tent',
+        str_contains($n, 'carrier') || str_contains($n, 'daypack') || str_contains($n, 'ransel') => 'carrier',
+        str_contains($n, 'sleeping') => 'sleeping-bag',
+        str_contains($n, 'matras') => 'mat',
+        str_contains($n, 'kompor') => 'stove',
+        str_contains($n, 'nesting') || str_contains($n, 'panci') => 'cookset',
+        str_contains($n, 'headlamp') || str_contains($n, 'senter') => 'headlamp',
+        str_contains($n, 'kursi') => 'chair',
+        str_contains($n, 'meja') => 'table',
+        str_contains($n, 'hammock') => 'hammock',
+        str_contains($n, 'trekking') || str_contains($n, 'tongkat') => 'pole',
+        default => 'crate',
+    };
 }
 
 /** Batasi panjang teks untuk ringkasan. */

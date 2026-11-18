@@ -1,5 +1,5 @@
 <?php /** @var array $article */ ?>
-<article class="card article-card h-100">
+<article class="card article-card lamp h-100">
     <a class="article-cover" href="<?= url('/artikel/' . $article['slug']) ?>" tabindex="-1" aria-hidden="true">
         <?php if ($cover = upload_url($article['cover_image'])): ?>
             <img src="<?= e($cover) ?>" alt="" loading="lazy">
