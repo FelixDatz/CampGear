@@ -18,7 +18,7 @@ Proteksi rute dilakukan oleh middleware router: `auth` (harus login), `guest` (h
 | Kebutuhan dari brief | Implementasi | Lokasi |
 |---|---|---|
 | Info alat, paket, cara reservasi, kontak | Halaman katalog (chip kategori, cari, quick view), detail alat, paket, cara reservasi, kontak + FAQ | `/alat`, `/paket`, `/cara-reservasi`, `/kontak` |
-| Pilih alat, tanggal, jumlah unit, data kontak | Form booking interaktif (alat satuan + paket) | `/sewa` |
+| Pilih alat, tanggal, jumlah unit, data kontak | Form booking interaktif empat langkah dalam mode fokus (alat satuan + paket) | `/sewa` |
 | Validasi stok per rentang tanggal | Perhitungan stok per hari + transaksi berkunci | `App\Models\Availability`, `Booking::create()`, `GET /api/availability` |
 | Minimal 3 artikel | 4 artikel terbit + CRUD artikel | `/artikel`, `/staff/artikel` |
 | Cek status dengan kode + email/telepon | Form cek booking dengan pembatas percobaan | `/cek-booking` |

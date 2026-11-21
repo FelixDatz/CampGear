@@ -41,7 +41,7 @@
                             <td>
                                 <div class="d-flex align-items-center gap-2">
                                     <span class="thumb-sm">
-                                        <?php if ($image = upload_url($item['image'])): ?><img src="<?= e($image) ?>" alt=""><?php else: ?><i class="bi <?= e($item['category_icon'] ?: 'bi-box') ?>"></i><?php endif ?>
+                                        <?php if ($image = upload_url($item['image'])): ?><img src="<?= e($image) ?>" alt=""><?php else: ?><?php App\Core\View::partial('gear-glyph', ['item' => $item]) ?><?php endif ?>
                                     </span>
                                     <div><strong><?= e($item['name']) ?></strong><div class="small text-muted font-monospace"><?= e($item['slug']) ?></div></div>
                                 </div>

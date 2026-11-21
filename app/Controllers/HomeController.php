@@ -27,12 +27,7 @@ final class HomeController
         // dipakai sebagai perkiraan jumlah orang untuk saran paket.
         $packages = Package::available();
         foreach ($packages as &$package) {
-            $package['sleepers'] = 0;
-            foreach ($package['items'] as $item) {
-                if (gear_kind($item['name'] . ' ' . $item['slug']) === 'sleeping-bag') {
-                    $package['sleepers'] += (int) $item['quantity'];
-                }
-            }
+            $package['sleepers'] = Package::sleepers($package);
         }
         unset($package);
 
@@ -83,9 +78,22 @@ final class HomeController
 
     public function contact(): void
     {
+        $business = config('business');
+
+        // Status buka sekarang, dibaca dari jam operasional di konfigurasi (mis. "08.00–20.00").
+        $open = null;
+        if (preg_match('/(\d{1,2})[.:](\d{2})\s*[–-]\s*(\d{1,2})[.:](\d{2})/u', (string) $business['hours'], $m) === 1) {
+            $from = sprintf('%02d:%02d', $m[1], $m[2]);
+            $until = sprintf('%02d:%02d', $m[3], $m[4]);
+            $now = date('H:i');
+            $open = ['is_open' => $now >= $from && $now < $until, 'from' => str_replace(':', '.', $from), 'until' => str_replace(':', '.', $until)];
+        }
+
         view('pages/contact', [
             'title'    => 'Kontak',
-            'business' => config('business'),
+            'business' => $business,
+            'rental'   => config('rental'),
+            'open'     => $open,
         ]);
     }
 }

@@ -1,12 +1,16 @@
 <?php
 /**
  * Layout utama halaman publik dan area pelanggan.
+ * Mode fokus (form booking): navbar diganti bar ringkas dan footer disembunyikan.
  * @var string $content
  * @var string|null $title
+ * @var bool|null $focusMode
+ * @var string|null $exitUrl
  */
 $appName = (string) config('app.name', 'CampGear');
 $pageTitle = isset($title) ? $title . ' · ' . $appName : $appName;
 $isHome = App\Core\Request::path() === '/';
+$focusMode = !empty($focusMode);
 ?>
 <!doctype html>
 <html lang="id" data-theme="light" data-bs-theme="light">
@@ -47,17 +51,23 @@ $isHome = App\Core\Request::path() === '/';
     <link href="<?= asset('css/app.css') ?>" rel="stylesheet">
     <link href="<?= asset('css/site.css') ?>" rel="stylesheet">
 </head>
-<body class="site<?= $isHome ? ' is-home' : '' ?>">
+<body class="site<?= $isHome ? ' is-home' : '' ?><?= $focusMode ? ' is-focus' : '' ?>">
     <a class="visually-hidden-focusable btn btn-primary position-fixed m-2" style="z-index: 1100" href="#konten">Lewati ke konten</a>
 
-    <?php App\Core\View::partial('navbar', ['isHome' => $isHome]) ?>
+    <?php if ($focusMode): ?>
+        <?php App\Core\View::partial('focus-bar', ['exitUrl' => $exitUrl ?? url('/')]) ?>
+    <?php else: ?>
+        <?php App\Core\View::partial('navbar', ['isHome' => $isHome]) ?>
+    <?php endif ?>
 
     <main id="konten" class="site-main">
         <?php App\Core\View::partial('flash') ?>
         <?= $content ?>
     </main>
 
-    <?php App\Core\View::partial('footer') ?>
+    <?php if (!$focusMode): ?>
+        <?php App\Core\View::partial('footer') ?>
+    <?php endif ?>
     <?php App\Core\View::partial('site-ui') ?>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>

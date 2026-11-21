@@ -1,10 +1,15 @@
 <?php
 /**
+ * Detail alat: gambar di kiri (menempel saat di-scroll), keterangan di kanan.
+ * Jumlah, stok di tanggal trip, dan perkiraan biaya diatur alat.js.
+ *
  * @var array $item
- * @var array $packages
+ * @var array $packages paket yang memuat alat ini (id, name, slug, quantity)
+ * @var array $related  alat lain di kategori yang sama
  */
+$stock = (int) $item['stock_total'];
 ?>
-<div class="container py-4">
+<div class="container alat-page">
     <nav aria-label="breadcrumb">
         <ol class="breadcrumb">
             <li class="breadcrumb-item"><a href="<?= url('/') ?>">Beranda</a></li>
@@ -14,8 +19,8 @@
         </ol>
     </nav>
 
-    <div class="row g-4 g-lg-5">
-        <div class="col-lg-6">
+    <div class="alat-grid" data-alat data-id="<?= (int) $item['id'] ?>" data-slug="<?= e($item['slug']) ?>" data-rate="<?= (float) $item['daily_rate'] ?>" data-stock="<?= $stock ?>">
+        <div class="alat-art">
             <div class="gear-thumb gear-thumb-lg">
                 <?php if ($image = upload_url($item['image'])): ?>
                     <img src="<?= e($image) ?>" alt="<?= e($item['name']) ?>">
@@ -25,43 +30,58 @@
             </div>
         </div>
 
-        <div class="col-lg-6">
-            <span class="tag mb-2"><?= e($item['category_name']) ?></span>
-            <h1 class="h2"><?= e($item['name']) ?></h1>
-            <p class="mb-4"><span class="price fs-3"><?= rupiah($item['daily_rate']) ?></span> <span class="text-muted">per unit / hari</span></p>
+        <div class="alat-info">
+            <p class="eyebrow"><a href="<?= url('/alat', ['kategori' => $item['category_slug']]) ?>"><?= e($item['category_name']) ?></a></p>
+            <h1 class="alat-title"><?= e($item['name']) ?></h1>
+            <p class="alat-desc"><?= nl2br(e($item['description'])) ?></p>
 
-            <dl class="spec-list">
-                <div><dt>Kategori</dt><dd><?= e($item['category_name']) ?></dd></div>
-                <div><dt>Jumlah unit</dt><dd><?= (int) $item['stock_total'] ?> unit</dd></div>
+            <dl class="quick-spec">
+                <div><dt>Tarif</dt><dd class="mono"><?= rupiah($item['daily_rate']) ?> / hari</dd></div>
+                <div><dt>Jumlah unit</dt><dd><?= $stock ?> unit</dd></div>
+                <div><dt>Di tanggalmu</dt><dd><button type="button" class="avail-line" data-trip-open data-avail-id="<?= (int) $item['id'] ?>" data-avail-empty="Pilih tanggal sewa">Pilih tanggal sewa</button></dd></div>
             </dl>
 
-            <h2 class="h6 mt-4">Deskripsi</h2>
-            <p class="text-muted"><?= nl2br(e($item['description'])) ?></p>
-
-            <div class="alert alert-light border d-flex gap-2 small">
-                <i class="bi bi-info-circle text-primary"></i>
-                <div>Ketersediaan stok dicek untuk setiap hari dalam tanggal sewa yang kamu pilih. Kondisi alat dicatat saat diambil dan saat dikembalikan.</div>
+            <div class="alat-buy">
+                <div class="stepper" role="group" aria-label="Jumlah unit">
+                    <button type="button" data-alat-step="-1" aria-label="Kurangi jumlah"><i class="bi bi-dash" aria-hidden="true"></i></button>
+                    <output data-alat-qty>1</output>
+                    <button type="button" data-alat-step="1" aria-label="Tambah jumlah"><i class="bi bi-plus" aria-hidden="true"></i></button>
+                </div>
+                <button type="button" class="btn btn-cta btn-lg btn-ransel" data-ransel-add="item:<?= (int) $item['id'] ?>" data-qty="1" data-name="<?= e($item['name']) ?>"><i class="bi bi-backpack" aria-hidden="true"></i> Masukkan ke ransel</button>
+                <a class="btn btn-outline-primary btn-lg" href="<?= url('/sewa', ['alat' => $item['slug']]) ?>" data-sewa-link data-alat-sewa><i class="bi bi-calendar-check me-1" aria-hidden="true"></i> Sewa alat ini</a>
             </div>
-
-            <p class="mb-3"><button type="button" class="avail-line" data-trip-open data-avail-id="<?= (int) $item['id'] ?>" data-avail-empty="Pilih tanggal sewa untuk cek stok">Pilih tanggal sewa untuk cek stok</button></p>
-
-            <div class="d-flex flex-wrap gap-2">
-                <a class="btn btn-primary btn-lg" href="<?= url('/sewa', ['alat' => $item['slug']]) ?>" data-sewa-link><i class="bi bi-calendar-check me-1"></i> Sewa alat ini</a>
-                <a class="btn btn-outline-primary btn-lg" href="<?= url('/alat', ['kategori' => $item['category_slug']]) ?>">Alat sejenis</a>
-                <button type="button" class="btn btn-cta btn-lg btn-ransel" data-ransel-add="item:<?= (int) $item['id'] ?>" data-name="<?= e($item['name']) ?>"><i class="bi bi-backpack" aria-hidden="true"></i> Masukkan ke ransel</button>
-            </div>
+            <p class="alat-estimate" data-alat-estimate aria-live="polite">Pilih tanggal untuk melihat perkiraan biaya.</p>
 
             <?php if ($packages !== []): ?>
-                <h2 class="h6 mt-4">Termasuk dalam paket</h2>
-                <ul class="list-unstyled mb-0">
-                    <?php foreach ($packages as $package): ?>
-                        <li class="mb-1"><i class="bi bi-box2-heart text-primary me-1"></i>
-                            <a href="<?= url('/paket') ?>#<?= e($package['slug']) ?>"><?= e($package['name']) ?></a>
-                            <span class="text-muted small">(<?= (int) $package['quantity'] ?> unit)</span>
-                        </li>
-                    <?php endforeach ?>
-                </ul>
+                <div class="alat-packs">
+                    <h2 class="h6">Termasuk dalam paket</h2>
+                    <ul>
+                        <?php foreach ($packages as $package): ?>
+                            <li><a href="<?= url('/paket') ?>#<?= e($package['slug']) ?>"><i class="bi bi-box2-heart" aria-hidden="true"></i> <?= e($package['name']) ?> <span>×<?= (int) $package['quantity'] ?></span></a></li>
+                        <?php endforeach ?>
+                    </ul>
+                </div>
             <?php endif ?>
+
+            <p class="alat-note"><i class="bi bi-clipboard-check" aria-hidden="true"></i>
+                Stok dicek untuk setiap hari dalam tanggal sewamu. Kondisi alat dicatat bersama staf saat diambil dan saat dikembalikan.</p>
         </div>
     </div>
+
+    <?php if ($related !== []): ?>
+        <section class="alat-related" aria-labelledby="related-title">
+            <div class="sec-head">
+                <div class="scene-head">
+                    <p class="eyebrow">Masih di <?= e($item['category_name']) ?></p>
+                    <h2 id="related-title">Alat lain yang sejenis</h2>
+                </div>
+                <a class="fw-semibold" href="<?= url('/alat', ['kategori' => $item['category_slug']]) ?>">Lihat semua <i class="bi bi-arrow-right" aria-hidden="true"></i></a>
+            </div>
+            <div class="katalog-grid">
+                <?php foreach ($related as $other): ?>
+                    <?php App\Core\View::partial('equipment-card', ['item' => $other, 'packages' => [], 'hidden' => false]) ?>
+                <?php endforeach ?>
+            </div>
+        </section>
+    <?php endif ?>
 </div>

@@ -1,8 +1,16 @@
-<div class="container py-5">
-    <div class="row justify-content-center">
-        <div class="col-sm-10 col-md-7 col-lg-5">
-            <div class="card auth-card">
-                <div class="card-body p-4 p-md-5">
+<div class="container auth-wrap">
+    <div class="auth-split">
+        <?php App\Core\View::partial('auth-aside', [
+            'title'  => 'Selamat datang kembali di basecamp.',
+            'points' => [
+                ['bi-ticket-perforated', 'Semua tiket ekspedisimu tersimpan di satu tempat.'],
+                ['bi-person-check', 'Data kontak terisi otomatis saat booking.'],
+                ['bi-bell', 'Pantau pembayaran, pembatalan, dan penggantian.'],
+            ],
+        ]) ?>
+        <div class="auth-main">
+            <div class="auth-card">
+                <div class="auth-form">
                     <h1 class="h3 mb-1">Masuk</h1>
                     <p class="text-muted mb-4">Masuk untuk melihat riwayat sewa dan mengelola akunmu.</p>
 

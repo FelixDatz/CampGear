@@ -28,56 +28,9 @@ if ($booking['cancelled_at']) {
     $timeline[] = ['Dibatalkan', $booking['cancelled_at']];
 }
 
-// Perjalanan status normal. Kedaluwarsa dan Dibatalkan menghentikan perjalanan
-// di langkah terakhir yang sempat dicapai.
-$steps = [BookingStatus::PendingPayment, BookingStatus::Confirmed, BookingStatus::PickedUp, BookingStatus::Returned, BookingStatus::Completed];
-$stopped = in_array($status, [BookingStatus::Expired, BookingStatus::Cancelled], true);
-$now = $stopped ? -1 : (int) array_search($status, $steps, true);
-$reached = $now;
-if ($stopped) {
-    foreach (array_slice($timeline, 0, 5) as $i => [, $time]) {
-        if ($time !== null) {
-            $reached = $i;
-        }
-    }
-}
-$tone = match ($status) {
-    BookingStatus::PendingPayment => 'warn',
-    BookingStatus::Confirmed, BookingStatus::PickedUp => 'accent',
-    BookingStatus::Completed => 'ok',
-    BookingStatus::Cancelled => 'bad',
-    default => 'muted',
-};
-// Teks stempel dibuat pendek supaya muat di tengah garis Ambil → Kembali.
-$stampText = match ($status) {
-    BookingStatus::PendingPayment => 'Menunggu bayar',
-    BookingStatus::Confirmed      => 'Terkonfirmasi',
-    BookingStatus::PickedUp       => 'Sedang disewa',
-    BookingStatus::Returned       => 'Dikembalikan',
-    BookingStatus::Completed      => 'Selesai',
-    BookingStatus::Cancelled      => 'Dibatalkan',
-    BookingStatus::Expired        => 'Kedaluwarsa',
-};
-
-// Isi tiket: nama paket, ditambah jumlah unit alat satuan.
-$packageNames = array_values(array_unique(array_filter(array_column($items, 'package_name'))));
-$looseUnits = 0;
-foreach ($items as $item) {
-    $looseUnits += $item['package_name'] ? 0 : (int) $item['quantity'];
-}
-$isi = implode(' + ', $packageNames);
-if ($looseUnits > 0) {
-    $isi .= ($isi !== '' ? ' + ' : '') . $looseUnits . ' alat';
-}
-
-[$stub, $stubIcon, $stubText] = match ($status) {
-    BookingStatus::Confirmed      => ['qr', null, null],
-    BookingStatus::PendingPayment => ['locked', null, null],
-    BookingStatus::PickedUp       => ['icon', 'bi-backpack', 'Alat sedang dibawa'],
-    BookingStatus::Returned       => ['icon', 'bi-arrow-return-left', 'Alat sudah kembali'],
-    BookingStatus::Completed      => ['icon', 'bi-check2-circle', 'Perjalanan selesai'],
-    default                       => ['icon', 'bi-slash-circle', 'Tiket tidak berlaku'],
-};
+// Tiket dan jejak status disiapkan partial booking-ticket dan status-trail;
+// nada warna dan teks stempel ada di enum BookingStatus.
+$tone = $status->tone();
 $unsettled = count(array_filter($damages, static fn ($d) => $d['status'] === 'unsettled'));
 $remaining = $status === BookingStatus::PendingPayment ? max(0, strtotime((string) $booking['payment_due_at']) - time()) : 0;
 ?>
@@ -92,30 +45,10 @@ $remaining = $status === BookingStatus::PendingPayment ? max(0, strtotime((strin
         </nav>
 
         <div class="tiket-grid">
-            <?php App\Core\View::partial('ticket', ['t' => [
-                'code'     => $booking['code'],
-                'start'    => tanggal_singkat($booking['start_date']),
-                'startSub' => hari($booking['start_date']) . ' ' . date('Y', strtotime($booking['start_date'])),
-                'end'      => tanggal_singkat($booking['end_date']),
-                'endSub'   => hari($booking['end_date']) . ' · paling lambat',
-                'days'     => (int) $booking['total_days'] . ' hari',
-                'isi'      => $isi,
-                'total'    => rupiah($booking['grand_total']),
-                'stamp'    => $stampText,
-                'tone'     => $tone,
-                'stub'     => $stub,
-                'stubIcon' => $stubIcon,
-                'stubText' => $stubText,
-            ]]) ?>
+            <?php App\Core\View::partial('booking-ticket', ['booking' => $booking, 'items' => $items, 'status' => $status]) ?>
 
             <div class="status d-print-none">
-                <ol class="status-trail<?= $stopped ? ' is-stopped' : '' ?>" style="--prog: <?= round(max(0, $reached) / 4, 2) ?>" aria-label="Perjalanan status booking">
-                    <?php foreach ($steps as $i => $step):
-                        $class = ($i < $reached || ($stopped && $i === $reached)) ? 'is-done' : ($i === $now ? 'is-now' : '');
-                    ?>
-                        <li class="<?= $class ?>"<?= $i === $now ? ' aria-current="step"' : '' ?>><span class="st-dot" aria-hidden="true"></span><span class="st-label"><?= e($step->label()) ?></span></li>
-                    <?php endforeach ?>
-                </ol>
+                <?php App\Core\View::partial('status-trail', ['booking' => $booking, 'status' => $status]) ?>
 
                 <div class="status-now" data-tone="<?= $tone ?>">
                     <p class="eyebrow">Status sekarang</p>

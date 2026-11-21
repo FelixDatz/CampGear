@@ -12,9 +12,10 @@ form() { local jar="$1" path="$2" tp="$3"; shift 3; local t; t="$(tok "$jar" "$t
 
 echo "== Artikel publik"
 curl -s "$BASE/artikel" -o "$TMP/a.html"
-check "4 artikel terbit tampil" 4 "$(grep -c 'class="card article-card' "$TMP/a.html")"
+check "4 artikel terbit tampil (1 unggulan + baris)" 4 "$(grep -cE 'class="art-feature lamp"|class="art-row"' "$TMP/a.html")"
 check "detail artikel" 200 "$(status "$BASE/artikel/cara-memasang-dan-merawat-tenda-dome")"
 curl -s "$BASE/artikel/cara-memasang-dan-merawat-tenda-dome" -o "$TMP/ad.html"
+contains "artikel: progres baca & daftar isi" 'data-read-toc' "$TMP/ad.html"
 contains "format subjudul -> h2" "<h2>Memilih lokasi</h2>" "$TMP/ad.html"
 contains "format daftar -> li" "<li>Cari permukaan datar" "$TMP/ad.html"
 contains "format tebal" "<strong>Jangan pernah menyimpan tenda" "$TMP/ad.html"
@@ -179,6 +180,9 @@ check "API staff dengan pendapatan" 1 "$(curl -s -b "$TMP/staff.jar" "$BASE/api/
 check "rentang API tidak valid -> 422" 422 "$(status "$BASE/api/stats?period=week&range=6")"
 curl -s -b "$TMP/staff.jar" "$BASE/staff" -o "$TMP/dash.html"
 contains "dashboard memuat Chart.js" "chart.umd.min.js" "$TMP/dash.html"
+contains "panel memakai sistem desain publik" "css/panel.css" "$TMP/dash.html"
+contains "panel: tombol tema terang/gelap" "data-panel-theme" "$TMP/dash.html"
+contains "dashboard: angka utama" 'class="kpi-grid"' "$TMP/dash.html"
 contains "dashboard agenda" "Jatuh tempo pengembalian" "$TMP/dash.html"
 
 summary

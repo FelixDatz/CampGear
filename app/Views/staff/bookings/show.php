@@ -18,15 +18,44 @@ $base = '/staff/booking/' . $code;
 $unsettled = count(array_filter($damages, static fn ($d) => $d['status'] === 'unsettled'));
 $pendingCancel = array_values(array_filter($cancellations, static fn ($c) => $c['status'] === 'pending'));
 $methodLabels = ['transfer' => 'Transfer', 'ewallet' => 'E-wallet', 'cash' => 'Tunai'];
+$isLate = $booking['status'] === 'picked_up' && $booking['end_date'] < date('Y-m-d');
+
+// Langkah berikutnya bagi staf, sesuai status booking.
+[$nextTitle, $nextText, $nextTone] = match ($status) {
+    BookingStatus::PendingPayment => ['Tunggu pembayaran', 'Batas bayar ' . tanggal($booking['payment_due_at'], true, true) . '. Bila penyewa membayar tunai di lokasi, catat di bawah.', 'warn'],
+    BookingStatus::Confirmed      => $canPickup
+        ? ['Serah terima pengambilan', 'Periksa setiap alat bersama penyewa, isi checklist, catat deposit bila ada, lalu serahkan alat.', 'accent']
+        : ['Belum bisa diambil', date('Y-m-d') < $booking['start_date'] ? 'Pengambilan dapat dicatat mulai ' . tanggal($booking['start_date'], true) . '.' : 'Periode sewa sudah lewat tanpa pengambilan alat.', 'muted'],
+    BookingStatus::PickedUp       => ['Terima pengembalian', 'Jatuh tempo ' . tanggal($booking['end_date'], true) . ($isLate ? '. Alat terlambat dikembalikan.' : '. Isi checklist pengembalian saat alat diterima.'), $isLate ? 'bad' : 'accent'],
+    BookingStatus::Returned       => $unsettled > 0
+        ? ['Selesaikan penggantian', $unsettled . ' laporan kerusakan/kehilangan belum tuntas. Booking baru bisa diselesaikan setelah semuanya tuntas.', 'bad']
+        : ['Selesaikan booking', 'Perbarui status deposit bila perlu, lalu tandai booking selesai.', 'accent'],
+    BookingStatus::Completed      => ['Tidak ada tindakan', 'Booking selesai pada ' . tanggal($booking['completed_at'], true, true) . '.', 'ok'],
+    BookingStatus::Cancelled      => ['Booking dibatalkan', 'Dibatalkan pada ' . tanggal($booking['cancelled_at'], true, true) . '. Stok sudah dilepas.', 'bad'],
+    BookingStatus::Expired        => ['Booking kedaluwarsa', 'Tidak dibayar sampai ' . tanggal($booking['payment_due_at'], true, true) . '. Stok sudah dilepas.', 'muted'],
+};
 ?>
-<div class="d-flex flex-wrap align-items-center gap-2 mb-3">
-    <a class="btn btn-sm btn-outline-secondary" href="<?= url('/staff/booking') ?>"><i class="bi bi-arrow-left"></i> Daftar booking</a>
-    <span class="badge fs-6 <?= e($status->badgeClass()) ?>"><?= e($status->label()) ?></span>
-    <?php if ($booking['status'] === 'picked_up' && $booking['end_date'] < date('Y-m-d')): ?>
-        <span class="badge fs-6 text-bg-danger">Terlambat dikembalikan</span>
-    <?php endif ?>
-    <a class="btn btn-sm btn-outline-primary ms-auto" href="<?= url('/booking/' . $code) ?>" target="_blank" rel="noopener"><i class="bi bi-box-arrow-up-right"></i> Halaman penyewa</a>
+<div class="page-actions">
+    <a class="btn btn-sm btn-outline-secondary" href="<?= url('/staff/booking') ?>"><i class="bi bi-arrow-left" aria-hidden="true"></i> Daftar booking</a>
+    <a class="btn btn-sm btn-outline-primary" href="<?= url('/booking/' . $code) ?>" target="_blank" rel="noopener"><i class="bi bi-box-arrow-up-right" aria-hidden="true"></i> Halaman penyewa</a>
 </div>
+
+<section class="staff-ticket" aria-label="Tiket booking">
+    <?php App\Core\View::partial('booking-ticket', ['booking' => $booking, 'items' => $items, 'status' => $status, 'tag' => 'p']) ?>
+    <div class="status">
+        <?php App\Core\View::partial('status-trail', ['booking' => $booking, 'status' => $status]) ?>
+        <div class="next-step" data-tone="<?= e($nextTone) ?>">
+            <span class="eyebrow">Langkah berikutnya</span>
+            <b><?= e($nextTitle) ?></b>
+            <span><?= e($nextText) ?></span>
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+            <span class="badge <?= e($status->badgeClass()) ?>"><?= e($status->label()) ?></span>
+            <?php if ($isLate): ?><span class="badge text-bg-danger">Terlambat dikembalikan</span><?php endif ?>
+            <span class="badge text-bg-light border"><?= $booking['user_id'] ? 'Akun terdaftar' : 'Tamu' ?></span>
+        </div>
+    </div>
+</section>
 
 <?php if ($pendingCancel !== []): ?>
     <div class="alert alert-warning d-flex flex-wrap align-items-center gap-2">

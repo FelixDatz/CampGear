@@ -78,6 +78,8 @@ echo "== Operasional: tunai -> ambil -> kembali (rusak/hilang) -> selesai"
 r="$(TOKPATH="/staff/booking/$C3" post "$TMP/staff.jar" "/staff/booking/$C3/ambil")"
 curl -s -b "$TMP/staff.jar" "$BASE/staff/booking/$C3" -o "$TMP/s.html"
 contains "ambil sebelum bayar ditolak" "sudah terkonfirmasi" "$TMP/s.html"
+contains "detail staff: tiket yang sama dengan penyewa" 'class="staff-ticket"' "$TMP/s.html"
+contains "detail staff: langkah berikutnya" 'class="next-step"' "$TMP/s.html"
 TOKPATH="/staff/booking/$C3" post "$TMP/staff.jar" "/staff/booking/$C3/bayar" >/dev/null
 check "tunai: confirmed + handled_by staff" "confirmed cash 2" "$($MYSQL "SELECT b.status, p.method, p.handled_by FROM bookings b JOIN payments p ON p.booking_id=b.id WHERE b.code='$C3'" | tr '\t' ' ')"
 mapfile -t ITEMS < <($MYSQL "SELECT CONCAT(bi.id,':',bi.quantity) FROM booking_items bi JOIN bookings b ON b.id=bi.booking_id WHERE b.code='$C3' ORDER BY bi.id")

@@ -112,4 +112,21 @@ final class Request
         $query = $_SERVER['QUERY_STRING'] ?? '';
         return self::path() . ($query !== '' ? '?' . $query : '');
     }
+
+    /**
+     * Path halaman asal (header Referer) bila berasal dari situs ini, selain itu null.
+     * Dipakai tombol "Keluar" di mode fokus; host lain diabaikan agar tidak menjadi tautan ke luar.
+     */
+    public static function localReferer(): ?string
+    {
+        $parts = parse_url((string) ($_SERVER['HTTP_REFERER'] ?? ''));
+        if (!is_array($parts) || !isset($parts['host'], $parts['path'])) {
+            return null;
+        }
+        $host = $parts['host'] . (isset($parts['port']) ? ':' . $parts['port'] : '');
+        if (strcasecmp($host, (string) ($_SERVER['HTTP_HOST'] ?? '')) !== 0) {
+            return null;
+        }
+        return $parts['path'] . (isset($parts['query']) ? '?' . $parts['query'] : '');
+    }
 }

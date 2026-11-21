@@ -94,8 +94,14 @@ final class BookingController
             ? ['customer_name' => $user['name'], 'customer_email' => $user['email'], 'customer_phone' => $user['phone']]
             : [];
 
+        // Mode fokus: navbar diganti bar ringkas; "Keluar" kembali ke halaman asal di situs ini.
+        $back = Request::localReferer();
+        $exitUrl = ($back !== null && !str_contains((string) parse_url($back, PHP_URL_PATH), '/sewa')) ? $back : url('/');
+
         view('booking/create', [
             'title'            => 'Buat Booking',
+            'focusMode'        => true,
+            'exitUrl'          => $exitUrl,
             'equipment'        => $equipment,
             'packages'         => array_values(array_filter($packages, static fn ($p) => $p['is_available'])),
             'selectedItems'    => $selectedItems,

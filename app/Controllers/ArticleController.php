@@ -31,6 +31,7 @@ final class ArticleController
             'metaDescription' => $article['excerpt'],
             'article'         => $article,
             'related'         => Article::related((int) $article['id']),
+            'pageScripts'     => ['js/artikel.js'],
         ]);
     }
 }

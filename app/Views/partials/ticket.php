@@ -4,7 +4,8 @@
  * isinya diganti home.js mengikuti tanggal trip dan isi ransel lewat atribut data-t).
  *
  * @var array $t code, start, startSub, end, endSub, days, isi, total, stamp, tone,
- *               stub ('qr' | 'locked' | 'demo' | 'icon'), stubIcon, stubText, sample (bool)
+ *               stub ('qr' | 'locked' | 'demo' | 'icon'), stubIcon, stubText, sample (bool),
+ *               tag ('h1' di halaman penyewa, 'p' di panel staff yang sudah punya h1)
  */
 $sample = !empty($t['sample']);
 $locked = in_array($t['stub'], ['locked', 'demo'], true);
@@ -18,11 +19,13 @@ $locked = in_array($t['stub'], ['locked', 'demo'], true);
         <div class="ticket-code">
             <?php if ($sample): ?>
                 <p class="code" data-t="code"><?= e($t['code']) ?></p>
-            <?php else: ?>
-                <h1 class="code"><span class="visually-hidden">Booking </span><?= e($t['code']) ?></h1>
-                <button class="btn btn-sm btn-outline-secondary d-print-none" type="button" data-copy="<?= e($t['code']) ?>" aria-label="Salin kode booking">
-                    <i class="bi bi-clipboard" aria-hidden="true"></i> Salin
-                </button>
+            <?php else: $tag = in_array($t['tag'] ?? 'h1', ['h1', 'p'], true) ? ($t['tag'] ?? 'h1') : 'h1'; ?>
+                <<?= $tag ?> class="code"><span class="visually-hidden">Booking </span><?= e($t['code']) ?></<?= $tag ?>>
+                <?php if ($tag === 'h1'): ?>
+                    <button class="btn btn-sm btn-outline-secondary d-print-none" type="button" data-copy="<?= e($t['code']) ?>" aria-label="Salin kode booking">
+                        <i class="bi bi-clipboard" aria-hidden="true"></i> Salin
+                    </button>
+                <?php endif ?>
             <?php endif ?>
         </div>
         <div class="route">

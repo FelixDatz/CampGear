@@ -20,6 +20,21 @@ final class Package
     }
 
     /** Paket aktif yang memuat alat tertentu. */
+    /**
+     * Perkiraan jumlah orang untuk sebuah paket: jumlah sleeping bag di dalamnya.
+     * Dipakai saran paket di beranda dan label "untuk ±N orang" di halaman paket.
+     */
+    public static function sleepers(array $package): int
+    {
+        $count = 0;
+        foreach ($package['items'] as $item) {
+            if (gear_kind($item['name'] . ' ' . $item['slug']) === 'sleeping-bag') {
+                $count += (int) $item['quantity'];
+            }
+        }
+        return $count;
+    }
+
     /** Paket aktif yang semua alatnya masih aktif, sehingga bisa disewa. */
     public static function available(): array
     {

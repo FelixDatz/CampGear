@@ -47,6 +47,38 @@ enum BookingStatus: string
         };
     }
 
+    /** Nada warna di tiket dan jejak status (token CSS: warn, accent, ok, bad, muted). */
+    public function tone(): string
+    {
+        return match ($this) {
+            self::PendingPayment             => 'warn',
+            self::Confirmed, self::PickedUp  => 'accent',
+            self::Completed                  => 'ok',
+            self::Cancelled                  => 'bad',
+            self::Returned, self::Expired    => 'muted',
+        };
+    }
+
+    /** Teks pendek untuk stempel di tiket (muat di tengah garis Ambil → Kembali). */
+    public function stamp(): string
+    {
+        return match ($this) {
+            self::PendingPayment => 'Menunggu bayar',
+            self::Confirmed      => 'Terkonfirmasi',
+            self::PickedUp       => 'Sedang disewa',
+            self::Returned       => 'Dikembalikan',
+            self::Completed      => 'Selesai',
+            self::Cancelled      => 'Dibatalkan',
+            self::Expired        => 'Kedaluwarsa',
+        };
+    }
+
+    /** Urutan perjalanan normal sebuah booking (dipakai jejak status). */
+    public static function journey(): array
+    {
+        return [self::PendingPayment, self::Confirmed, self::PickedUp, self::Returned, self::Completed];
+    }
+
     /** Status yang menahan stok: unit dianggap terpakai pada tanggal sewanya. */
     public static function holdingStock(): array
     {

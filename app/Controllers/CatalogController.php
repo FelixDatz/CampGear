@@ -48,19 +48,33 @@ final class CatalogController
             throw new HttpException(404, 'Alat tidak ditemukan atau sudah tidak disewakan.');
         }
 
+        // Alat lain di kategori yang sama (maksimal empat) untuk bagian "Alat lain".
+        $related = array_values(array_filter(
+            Equipment::active((int) $item['category_id']),
+            static fn (array $other): bool => (int) $other['id'] !== (int) $item['id'],
+        ));
+
         view('catalog/show', [
-            'title'    => $item['name'],
-            'item'     => $item,
-            'packages' => Package::containingEquipment((int) $item['id']),
+            'title'       => $item['name'],
+            'item'        => $item,
+            'packages'    => Package::containingEquipment((int) $item['id']),
+            'related'     => array_slice($related, 0, 4),
+            'pageScripts' => ['js/alat.js'],
         ]);
     }
 
     /** GET /paket */
     public function packages(): void
     {
+        $packages = Package::activeWithItems();
+        foreach ($packages as &$package) {
+            $package['sleepers'] = Package::sleepers($package);
+        }
+        unset($package);
+
         view('catalog/packages', [
             'title'    => 'Paket Sewa',
-            'packages' => Package::activeWithItems(),
+            'packages' => $packages,
         ]);
     }
 }

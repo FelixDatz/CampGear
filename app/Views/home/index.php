@@ -56,7 +56,7 @@ $trail = 'M40 388 C 100 388 120 356 170 350 C 260 340 340 290 420 260 C 500 230 
         <div class="scene-inner" data-hero>
             <canvas class="sky-canvas" data-sky aria-hidden="true"></canvas>
             <div class="sun" role="slider" tabindex="0" data-sun
-                 aria-label="Posisi matahari, mengatur tema terang atau gelap" aria-valuemin="0" aria-valuemax="100" aria-valuenow="50" aria-valuetext="Siang">
+                    aria-label="Posisi matahari, mengatur tema terang atau gelap" aria-valuemin="0" aria-valuemax="100" aria-valuenow="50" aria-valuetext="Siang">
                 <span class="sun-disc"></span>
             </div>
             <canvas class="ridge-canvas ridge-back" data-ridge="back" aria-hidden="true"></canvas>
@@ -378,5 +378,5 @@ $trail = 'M40 388 C 100 388 120 356 170 350 C 260 340 340 290 420 260 C 500 230 
 <nav class="alti" aria-label="Ketinggian halaman" data-alti>
     <span class="alti-readout"><span data-alti-value>95</span> <span class="alti-unit">mdpl</span></span>
     <div class="alti-rail" data-alti-rail><span class="alti-marker" data-alti-marker></span></div>
-    <span class="alti-unit">Solo → Lawu</span>
+    <span class="alti-unit">Mountain</span>
 </nav>

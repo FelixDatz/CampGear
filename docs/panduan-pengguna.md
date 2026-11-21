@@ -17,10 +17,12 @@
 ### Menyewa alat
 1. Pilih tanggal di kartu **Tanggal ambil & kembali** di beranda (atau chip tanggal di navbar dan katalog). Stok di katalog, detail alat, dan paket mengikuti tanggal ini.
 2. Kumpulkan alat atau paket dengan tombol **Ransel**, lalu buka ransel dan tekan **Lanjut ke booking**. Bisa juga langsung lewat **Sewa alat ini** / **Sewa paket ini** atau **Sewa Sekarang**.
-3. Di form booking, periksa **tanggal mulai** (hari ambil) dan **tanggal selesai** (hari kembali). Durasi dihitung inklusif, maksimal 14 hari.
-4. Setiap alat menampilkan **"Tersedia N unit"** untuk seluruh tanggal yang dipilih. Atur jumlah dengan tombol − / +. Baris yang melebihi stok ditandai merah dan tombol **Buat Booking** nonaktif.
-5. Isi nama, email, dan nomor HP. Bila sudah login, data ini terisi otomatis.
-6. Tekan **Buat Booking**. Catat **kode booking** yang muncul. Ransel dikosongkan setelah booking dikirim.
+3. Form booking (`/sewa`) tampil dalam **mode fokus**. Navbar diganti bar ringkas berisi tombol **Keluar** (kembali ke halaman sebelumnya) dan progres langkah. Total biaya serta tombol **Lanjut** ada di bar bawah. Langkahnya:
+   - **Tanggal:** periksa tanggal mulai (hari ambil) dan tanggal selesai (hari kembali). Durasi dihitung inklusif, maksimal 14 hari.
+   - **Isi ransel:** setiap paket dan alat menampilkan **"Tersedia N set/unit"** untuk seluruh tanggal yang dipilih. Atur jumlah dengan tombol − / +. Baris yang melebihi stok ditandai merah dan langkah ini belum bisa dilewati.
+   - **Data penyewa:** isi nama, email, dan nomor HP. Bila sudah login, data ini terisi otomatis.
+   - **Periksa:** cek ringkasan. Tombol **Ubah** membawa kembali ke langkah terkait. Tekan **Buat Booking** untuk mengirim.
+4. Catat **kode booking** pada tiket yang muncul. Ransel dikosongkan setelah booking dikirim.
 
 ### Membayar (simulasi)
 Di halaman booking, pilih **Transfer bank** atau **E-wallet**, lalu tekan **Bayar Sekarang**. Batas bayar 24 jam. Setelah itu booking kedaluwarsa dan stok dilepas. Pembayaran tunai juga bisa dilakukan di lokasi dan dicatat oleh staf.
@@ -37,16 +39,22 @@ Di halaman booking (status Menunggu Pembayaran atau Terkonfirmasi, sebelum tangg
 
 ### Akun pelanggan
 - **Daftar** dengan nama, email, nomor HP, dan password (min. 8 karakter, berisi huruf dan angka).
-- **Akun Saya** menampilkan riwayat penyewaan, status pembatalan, dan penggantian yang belum tuntas. Booking tamu yang memakai email akun ikut tampil.
+- **Akun Saya** menampilkan hal yang perlu ditindaklanjuti (pembayaran yang belum selesai, penggantian yang belum tuntas), lalu **Perjalanan aktif** dan **Riwayat** sebagai tiket mini dengan stempel status. Booking tamu yang memakai email akun ikut tampil.
 - **Profil & Password** untuk mengubah data pribadi dan mengganti password.
 
 ### Informasi lain
-- **Artikel:** panduan dan tips camping.
+- **Detail alat:** pilih jumlah unit (dibatasi stok di tanggalmu), lihat perkiraan biaya (jumlah × tarif × hari), paket yang memuat alat itu, dan alat lain yang sejenis.
+- **Paket:** isi tiap paket tampil sebagai papan ilustrasi beserta harga, hemat, dan perkiraan jumlah orang. Tabel di bawah membandingkan isi semua paket.
+- **Artikel:** artikel terbaru ditonjolkan di atas. Saat membaca, bilah tipis di atas layar menunjukkan progres dan daftar isi di samping mengikuti subjudul.
+- **Kontak & FAQ:** status buka/tutup dihitung dari jam operasional; pertanyaan umum memakai aturan sewa yang berlaku.
 - **Statistik:** grafik penyewaan per periode, pembatalan, dan tingkat pemakaian stok. Bisa dipilih bulanan atau mingguan, dan setiap grafik punya tampilan tabel.
 
 ## 2. Staff
 
-Login lalu buka **Panel Staff** (menu kiri; di HP lewat tombol ☰).
+Login lalu buka **Panel Staff** (menu kiri; di HP lewat tombol ☰). Tombol bulan/matahari di kanan atas mengganti tema terang/gelap; pilihan ini ikut terbawa ke situs publik.
+
+- **Dashboard** dibuka dengan ringkasan hari ini dan angka utama yang bisa diklik menuju daftar terkait.
+- **Detail booking** menampilkan tiket ekspedisi yang sama dengan milik penyewa, jejak status, dan kotak **Langkah berikutnya** yang menjelaskan tindakan staf sesuai status.
 
 | Menu | Kegunaan |
 |---|---|

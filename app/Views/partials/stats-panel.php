@@ -28,7 +28,7 @@ if ($showRevenue) {
         <span class="small text-muted ms-md-2" data-range-label aria-live="polite"></span>
     </div>
 
-    <div class="row g-3 mb-3">
+    <div class="kpi-grid mb-3">
         <?php
         $tiles = [
             ['rentals', 'Penyewaan', 'bi-calendar-check'],
@@ -39,14 +39,10 @@ if ($showRevenue) {
             $tiles[] = ['revenue', 'Pendapatan (simulasi)', 'bi-cash-stack'];
         }
         foreach ($tiles as [$key, $label, $icon]): ?>
-            <div class="col-6 col-lg">
-                <div class="card stat-card h-100">
-                    <div class="card-body">
-                        <div class="small text-muted"><i class="bi <?= e($icon) ?> me-1"></i><?= e($label) ?></div>
-                        <div class="fs-4 fw-bold" data-total="<?= e($key) ?>">–</div>
-                        <?php if ($key === 'cancellations'): ?><div class="small text-muted" data-total-note="cancellations"></div><?php endif ?>
-                    </div>
-                </div>
+            <div class="kpi">
+                <span class="kpi-label"><i class="bi <?= e($icon) ?>" aria-hidden="true"></i><?= e($label) ?></span>
+                <span class="kpi-value<?= $key === 'revenue' ? ' is-money' : '' ?>" data-total="<?= e($key) ?>">–</span>
+                <?php if ($key === 'cancellations'): ?><span class="kpi-note" data-total-note="cancellations"></span><?php endif ?>
             </div>
         <?php endforeach ?>
     </div>

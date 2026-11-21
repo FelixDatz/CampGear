@@ -16,29 +16,35 @@
     <div class="row g-4 g-lg-5">
         <div class="col-lg-7">
             <h2 class="h4 mb-3">Alur Penyewaan</h2>
-            <ol class="timeline">
+            <ol class="pos-trail">
                 <li>
-                    <h3 class="h6">1. Pilih alat dan tanggal sewa</h3>
+                    <span class="pos-n">Pos 1</span>
+                    <h3 class="h6">Pilih alat dan tanggal sewa</h3>
                     <p>Pilih alat satuan atau paket, tentukan tanggal mulai dan selesai, lalu isi jumlah unit. Sistem langsung mengecek apakah stok tersedia untuk <em>setiap hari</em> dalam rentang tanggal tersebut.</p>
                 </li>
                 <li>
-                    <h3 class="h6">2. Isi data kontak</h3>
+                    <span class="pos-n">Pos 2</span>
+                    <h3 class="h6">Isi data kontak</h3>
                     <p>Isi nama, email, dan nomor HP. Kamu bisa memesan tanpa akun. Jika mendaftar dengan email yang sama, riwayat sewamu akan tersimpan di akun.</p>
                 </li>
                 <li>
-                    <h3 class="h6">3. Simpan kode booking dan bayar</h3>
+                    <span class="pos-n">Pos 3</span>
+                    <h3 class="h6">Simpan kode booking dan bayar</h3>
                     <p>Setelah booking dibuat, kamu mendapat <strong>kode booking</strong>. Selesaikan pembayaran (simulasi) dalam <strong><?= (int) $rental['payment_window_hours'] ?> jam</strong>. Booking yang tidak dibayar akan kedaluwarsa dan stoknya dilepas kembali.</p>
                 </li>
                 <li>
-                    <h3 class="h6">4. Cek status booking</h3>
-                    <p>Status booking bisa dicek kapan saja menggunakan kode booking dan email atau nomor HP. Setelah terkonfirmasi, kartu pengambilan alat beserta QR akan tampil.</p>
+                    <span class="pos-n">Pos 4</span>
+                    <h3 class="h6">Cek status booking</h3>
+                    <p>Status booking bisa dicek kapan saja menggunakan kode booking dan email atau nomor HP. Halaman booking berupa tiket ekspedisi dengan jejak statusnya. Setelah terkonfirmasi, QR pengambilan tampil di tiket.</p>
                 </li>
                 <li>
-                    <h3 class="h6">5. Ambil alat</h3>
-                    <p>Datang pada tanggal mulai sewa dan tunjukkan kartu pengambilan. Staf bersama kamu akan mengecek kondisi setiap alat menggunakan checklist serah terima.</p>
+                    <span class="pos-n">Pos 5</span>
+                    <h3 class="h6">Ambil alat</h3>
+                    <p>Datang pada tanggal mulai sewa dan tunjukkan tiket (QR) atau kartu pengambilan yang dicetak. Staf bersama kamu akan mengecek kondisi setiap alat menggunakan checklist serah terima.</p>
                 </li>
                 <li>
-                    <h3 class="h6">6. Kembalikan alat</h3>
+                    <span class="pos-n">Pos 6</span>
+                    <h3 class="h6">Kembalikan alat</h3>
                     <p>Kembalikan alat paling lambat pada tanggal selesai sewa. Staf mengecek dan mencatat kondisi setiap alat menggunakan checklist pengembalian.</p>
                 </li>
             </ol>

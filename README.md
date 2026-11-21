@@ -17,7 +17,7 @@ Proyek UAS Pemrograman Web — Kelas A PTIK 2024.
 - **Beranda interaktif:** matahari yang bisa digeser mengatur tema terang/gelap, nama brand di antara lapisan gunung, kartu rencana trip (tanggal + rombongan), grid kategori yang membesar saat disentuh (isi, stok di tanggal trip, tombol ransel), papan isi paket, jalur sewa yang tergambar mengikuti scroll, katalog, contoh tiket ekspedisi, dan altimeter (mdpl) sebagai navigasi section.
 - **Navigasi ringkas:** menu Jelajahi (mega panel) dan Panduan, cek booking lewat popover, pencarian Ctrl+K, tab bar di HP.
 - **Trip & ransel:** tanggal sewa dipilih sekali lalu dipakai di seluruh situs (stok di katalog mengikuti tanggal); alat dan paket bisa dikumpulkan di ransel lalu dibawa ke form booking.
-- Booking alat satuan dan paket dengan **validasi stok per hari** dalam rentang tanggal (cek langsung via AJAX).
+- Booking alat satuan dan paket dengan **validasi stok per hari** dalam rentang tanggal (cek langsung via AJAX), dalam form empat langkah pada **mode fokus** (navbar diganti bar progres, total selalu terlihat).
 - Pembayaran simulasi, kode booking, batas bayar 24 jam dengan kedaluwarsa otomatis.
 - Cek status booking dengan kode + email/nomor HP. Halaman booking berupa **tiket ekspedisi**: stempel dan jejak status, hitung mundur batas bayar, QR setelah dibayar, dan checklist serah terima (bisa dicetak).
 - Pengajuan pembatalan dengan alasan; status *menunggu / disetujui / ditolak* beserta tanggapan dan catatan refund.
@@ -25,7 +25,9 @@ Proyek UAS Pemrograman Web — Kelas A PTIK 2024.
 - Registrasi, login, "Ingat saya", riwayat penyewaan, status pembatalan, profil, dan ganti password.
 
 **Staff**
-- Dashboard: alat siap diambil hari ini, sedang disewa, pembatalan menunggu, penggantian belum tuntas, pendapatan (simulasi), agenda, grafik, tabel transaksi.
+- Panel memakai sistem desain yang sama dengan situs publik (tema terang/gelap yang tersimpan bersama, radius 6px, font yang sama).
+- Dashboard: sapaan dan ringkasan hari ini, angka utama (alat siap diambil, sedang disewa, pembatalan menunggu, penggantian belum tuntas, pendapatan simulasi), agenda serah terima, grafik, tabel transaksi.
+- Detail booking menampilkan tiket ekspedisi yang sama dengan yang dilihat penyewa, jejak status, dan kotak **Langkah berikutnya** sesuai status.
 - Operasional booking: terima tunai, checklist pengambilan + catat deposit, checklist pengembalian + laporan **kerusakan/kehilangan**, penyelesaian (diblokir sampai penggantian tuntas).
 - Tinjau pembatalan: setujui (booking dibatalkan, stok dilepas, catat refund/deposit) atau tolak.
 - CRUD alat (gambar, stok total, tarif harian), kategori, paket, dan artikel.
@@ -125,7 +127,7 @@ Form HTML memakai `POST` dengan method spoofing (`_method=PUT/DELETE`) untuk ope
 bash tests/run-all.sh
 ```
 
-Hasil terakhir: **312 pemeriksaan otomatis lulus, 0 gagal**, ditambah 40 pemeriksaan aturan `.htaccess` di Apache dan uji responsif 31 halaman. Pengujian memakai database terpisah `campgear_test`. Detail: [docs/pengujian.md](docs/pengujian.md) · [tests/README.md](tests/README.md).
+Hasil terakhir: **336 pemeriksaan otomatis lulus, 0 gagal**, ditambah 40 pemeriksaan aturan `.htaccess` di Apache dan uji responsif 31 halaman. Pengujian memakai database terpisah `campgear_test`. Detail: [docs/pengujian.md](docs/pengujian.md) · [tests/README.md](tests/README.md).
 
 ## Dokumentasi
 

@@ -1,0 +1,193 @@
+/* =====================================================================
+   CampGear — panel Staff & Admin.
+   Dimuat setelah site.css, sehingga panel memakai token yang sama dengan
+   halaman publik: warna terang/gelap, font, dan satu radius 6px (--r).
+   File ini hanya berisi kerangka panel dan komponen yang khusus panel.
+   ===================================================================== */
+
+/* ---- Kerangka -------------------------------------------------------- */
+.panel-body.site { padding-bottom: 0 !important; background: var(--bg); }
+.panel-wrapper { display: flex; min-height: 100vh; }
+.panel-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.panel-content { padding: 24px; }
+
+/* Sidebar: selalu gelap seperti malam di hutan, di kedua tema.
+   !important diperlukan karena Bootstrap membuat .offcanvas-lg transparan (!important) di layar >= lg. */
+.panel-sidebar { background-color: var(--deep) !important; color: var(--deep-ink); }
+.panel-sidebar .offcanvas-body { padding: 18px 14px; }
+@media (min-width: 992px) {
+    .panel-sidebar { width: 252px; flex-shrink: 0; position: sticky; top: 0; height: 100vh; border-right: 1px solid rgba(255, 255, 255, .06); }
+}
+.panel-brand {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 4px 8px 16px;
+    margin-bottom: 4px;
+    border-bottom: 1px solid rgba(255, 255, 255, .08);
+    color: var(--deep-ink);
+    font-family: var(--f-display);
+    font-size: 1.22rem;
+    font-weight: 800;
+    letter-spacing: -.035em;
+    text-decoration: none;
+}
+.panel-brand:hover { color: #fff; }
+.panel-brand .brand-mark { width: 26px; height: 22px; }
+.panel-brand .brand-mark .m { fill: currentColor; }
+.panel-brand .brand-mark .s { fill: var(--cta); }
+.panel-brand-tag {
+    margin-left: auto;
+    padding: 2px 7px;
+    border-radius: var(--r-sm);
+    border: 1px solid rgba(255, 255, 255, .22);
+    color: var(--deep-muted);
+    font-family: var(--f-mono);
+    font-size: .6rem;
+    font-weight: 500;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+}
+.panel-group { margin: 16px 10px 6px; font-family: var(--f-mono); font-size: .62rem; letter-spacing: .14em; text-transform: uppercase; color: var(--deep-muted); }
+.panel-nav { gap: 2px; }
+.panel-nav .nav-link, .panel-side-foot .nav-link {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    border-radius: var(--r);
+    color: rgba(238, 241, 234, .72);
+    font-size: .92rem;
+    font-weight: 500;
+    transition: background-color .2s, color .2s;
+}
+.panel-nav .nav-link .bi, .panel-side-foot .nav-link .bi { width: 1.2rem; font-size: 1.02rem; text-align: center; }
+.panel-nav .nav-link:hover, .panel-side-foot .nav-link:hover { color: #fff; background: rgba(255, 255, 255, .07); }
+.panel-nav .nav-link.active { color: #fff; background: rgba(255, 255, 255, .12); font-weight: 600; }
+.panel-nav .nav-link.active::before { content: ""; position: absolute; left: -14px; top: 8px; bottom: 8px; width: 3px; border-radius: 0 3px 3px 0; background: var(--cta); }
+.panel-nav .badge { border-radius: var(--r-sm) !important; background: var(--cta) !important; color: var(--cta-ink) !important; font-family: var(--f-mono); font-weight: 500; }
+.panel-side-foot { margin-top: auto; padding-top: 12px; border-top: 1px solid rgba(255, 255, 255, .08); }
+
+/* Topbar: judul halaman, tanggal, tema, akun. */
+.panel-topbar {
+    position: sticky;
+    top: 0;
+    z-index: 1020;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 24px;
+    border-bottom: 1px solid var(--line);
+    background: var(--bg);
+    background: color-mix(in srgb, var(--bg) 86%, transparent);
+    -webkit-backdrop-filter: blur(14px);
+    backdrop-filter: blur(14px);
+}
+.panel-date { margin: 0; font-family: var(--f-mono); font-size: .66rem; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+.panel-title { margin: 0; font-family: var(--f-display); font-size: 1.4rem; font-weight: 700; letter-spacing: -.025em; line-height: 1.15; }
+.panel-tools { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+.panel-tool {
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    border-radius: var(--r);
+    border: 1px solid var(--line);
+    background: var(--surface-solid);
+    color: var(--ink);
+    font-size: 1.05rem;
+    transition: border-color .2s;
+}
+.panel-tool:hover { border-color: var(--line-strong); }
+.panel-user {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    max-width: 220px;
+    height: 40px;
+    padding: 0 10px 0 6px;
+    border-radius: var(--r);
+    border: 1px solid var(--line);
+    background: var(--surface-solid);
+    color: var(--ink);
+    font-size: .9rem;
+    font-weight: 600;
+}
+.panel-user:hover { border-color: var(--line-strong); }
+.site .avatar-sm { width: 1.75rem; height: 1.75rem; border-radius: var(--r-sm); background: var(--accent); color: var(--accent-ink); }
+@media (max-width: 575.98px) {
+    .panel-topbar { padding: 10px 14px; gap: 8px; }
+    .panel-content { padding: 14px; }
+    .panel-title { font-size: 1.15rem; }
+}
+
+/* ---- Komponen panel -------------------------------------------------- */
+/* Tab filter (booking, pembatalan, kerusakan): chip 6px seperti katalog publik. */
+.filter-tabs { gap: 4px; padding: 4px; border-radius: var(--r-bar); border: 1px solid var(--line); background: var(--surface-solid); scrollbar-width: none; width: fit-content; max-width: 100%; }
+.filter-tabs::-webkit-scrollbar { display: none; }
+.filter-tabs .nav-link { padding: 6px 12px; border-radius: var(--r); color: var(--ink-2); font-size: .88rem; font-weight: 600; }
+.filter-tabs .nav-link:hover { background: var(--surface-2); color: var(--ink); }
+.filter-tabs .nav-link.active { background: var(--accent); color: var(--accent-ink); }
+
+.thumb-sm {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 3rem;
+    height: 2.4rem;
+    overflow: hidden;
+    border-radius: var(--r-sm);
+    background: var(--surface-2);
+    color: var(--accent);
+    font-size: 1.2rem;
+}
+.thumb-sm img { width: 100%; height: 100%; object-fit: cover; }
+.thumb-sm svg { width: 88%; height: auto; }
+.icon-picker { display: flex; flex-wrap: wrap; gap: .4rem; }
+.icon-picker .btn { width: 2.75rem; height: 2.75rem; display: inline-flex; align-items: center; justify-content: center; font-size: 1.2rem; }
+.handover-table input[type="number"] { width: 4.5rem; }
+.handover-table td { min-width: 4rem; }
+.handover-block + .handover-block { border-top: 1px solid var(--line); padding-top: .75rem; margin-top: .75rem; }
+.panel-content .table > thead th { font-family: var(--f-mono); font-size: .68rem; font-weight: 500; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.panel-content .card > .card-body > h2.h6 { font-family: var(--f-display); font-size: 1.05rem; letter-spacing: -.015em; }
+
+/* Kepala halaman daftar: judul kecil + tombol utama. */
+.page-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; margin-bottom: 16px; }
+
+/* ---- Dashboard ------------------------------------------------------- */
+.dash-hello { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 14px 24px; margin-bottom: 20px; }
+.dash-hello h2 { margin: 6px 0 4px; font-family: var(--f-display); font-size: clamp(1.6rem, 2.6vw, 2.2rem); font-weight: 700; letter-spacing: -.03em; }
+.dash-hello p:not(.eyebrow) { margin: 0; color: var(--muted); }
+.dash-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.dash .kpi-grid { margin-bottom: 20px; }
+a.kpi { color: var(--ink); text-decoration: none; transition: border-color .2s, transform .25s cubic-bezier(.2, .8, .2, 1), box-shadow .25s; }
+a.kpi:hover { color: var(--ink); border-color: var(--line-strong); transform: translateY(-2px); box-shadow: var(--shadow); }
+.kpi[data-tone="warn"] { border-top: 3px solid var(--warn); }
+.kpi[data-tone="bad"] { border-top: 3px solid var(--bad); }
+.kpi[data-tone="accent"] { border-top: 3px solid var(--accent); }
+.kpi[data-tone="ok"] { border-top: 3px solid var(--ok); }
+.kpi .kpi-go { position: absolute; top: 14px; right: 14px; color: var(--muted); font-size: 1.05rem; }
+a.kpi .kpi-label { padding-right: 22px; }
+.agenda { margin: 0; padding: 0; list-style: none; }
+.agenda li { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 4px 12px; padding: 10px 0; border-bottom: 1px dashed var(--line); }
+.agenda li:last-child { border-bottom: 0; }
+.agenda .code { font-family: var(--f-mono); font-weight: 600; }
+.agenda .who { display: block; font-size: .82rem; color: var(--muted); }
+.agenda-empty { display: flex; align-items: center; gap: 10px; margin: 0; padding: 14px 0 4px; color: var(--muted); font-size: .9rem; }
+.agenda-empty .bi { font-size: 1.4rem; color: var(--ok); }
+
+/* ---- Detail booking (staff) ------------------------------------------ */
+.staff-ticket { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 20px; align-items: start; margin-bottom: 20px; }
+.staff-ticket .status { gap: 14px; }
+.next-step { display: grid; gap: 4px; padding: 14px 16px; border-radius: var(--r); border: 1px solid var(--line); border-left: 3px solid var(--accent); background: var(--surface); }
+.next-step[data-tone="warn"] { border-left-color: var(--warn); }
+.next-step[data-tone="bad"] { border-left-color: var(--bad); }
+.next-step[data-tone="muted"] { border-left-color: var(--muted); }
+.next-step[data-tone="ok"] { border-left-color: var(--ok); }
+.next-step b { font-size: 1rem; }
+.next-step > span:not(.eyebrow) { font-size: .88rem; color: var(--muted); }
+@media (max-width: 1199.98px) { .staff-ticket { grid-template-columns: minmax(0, 1fr); } }

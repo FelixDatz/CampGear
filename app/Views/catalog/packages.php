@@ -1,4 +1,19 @@
-<?php /** @var array $packages */ ?>
+<?php
+/**
+ * Paket sewa: tiap paket sebagai papan isi (ilustrasi alat) + harga, lalu tabel
+ * perbandingan isi semua paket di bagian bawah.
+ *
+ * @var array $packages paket aktif beserta items, normal_daily, daily_price, is_available, sleepers
+ */
+// Tabel perbandingan: semua alat yang muncul di paket mana pun.
+$compareRows = [];
+foreach ($packages as $package) {
+    foreach ($package['items'] as $line) {
+        $compareRows[(int) $line['equipment_id']] ??= ['name' => $line['name'], 'slug' => $line['slug'], 'qty' => []];
+        $compareRows[(int) $line['equipment_id']]['qty'][(int) $package['id']] = (int) $line['quantity'];
+    }
+}
+?>
 <section class="page-header">
     <div class="container">
         <nav aria-label="breadcrumb">
@@ -8,7 +23,7 @@
             </ol>
         </nav>
         <h1 class="h2 mb-1">Paket Sewa</h1>
-        <p class="text-muted mb-0">Kumpulan alat yang sudah dipilihkan untuk kebutuhan umum, dengan harga lebih hemat daripada sewa satuan.</p>
+        <p class="text-muted mb-0">Alat yang sudah dipilihkan untuk satu perjalanan, dengan harga lebih hemat daripada sewa satuan.</p>
     </div>
 </section>
 
@@ -22,50 +37,81 @@
         </div>
     <?php endif ?>
 
-    <div class="row g-4">
-        <?php foreach ($packages as $package): ?>
-            <div class="col-lg-4" id="<?= e($package['slug']) ?>">
-                <div class="card package-card lamp h-100">
-                    <div class="card-body d-flex flex-column">
-                        <div class="d-flex justify-content-between align-items-start mb-2 gap-2">
-                            <h2 class="h5 mb-0"><?= e($package['name']) ?></h2>
-                            <?php if ((float) $package['discount_percent'] > 0): ?>
-                                <span class="tag tag-cta flex-shrink-0">Hemat <?= (float) $package['discount_percent'] ?>%</span>
-                            <?php endif ?>
-                        </div>
-                        <p class="text-muted small"><?= e($package['description']) ?></p>
-
-                        <h3 class="h6 small text-uppercase text-muted mt-2">Isi paket</h3>
-                        <ul class="package-items">
-                            <?php foreach ($package['items'] as $line): ?>
-                                <li>
-                                    <a href="<?= url('/alat/' . $line['slug']) ?>"><?= e($line['name']) ?></a>
-                                    <span>&times;<?= (int) $line['quantity'] ?></span>
-                                </li>
-                            <?php endforeach ?>
-                        </ul>
-
-                        <div class="mt-auto pt-3 border-top">
-                            <div class="d-flex justify-content-between small text-muted">
-                                <span>Harga normal</span><s><?= rupiah($package['normal_daily']) ?>/hari</s>
-                            </div>
-                            <div class="d-flex justify-content-between align-items-baseline">
-                                <span class="fw-semibold">Harga paket</span>
-                                <span><span class="price fs-5"><?= rupiah($package['daily_price']) ?></span><span class="small text-muted">/hari</span></span>
-                            </div>
-                            <?php if (!$package['is_available']): ?>
-                                <div class="alert alert-warning small py-2 mt-3 mb-0">Sebagian alat di paket ini sedang tidak disewakan.</div>
-                            <?php else: ?>
-                                <p class="mt-3 mb-0"><button type="button" class="avail-line" data-trip-open data-avail-pkg="<?= (int) $package['id'] ?>" data-avail-empty="Pilih tanggal untuk cek ketersediaan paket">Pilih tanggal untuk cek ketersediaan paket</button></p>
-                                <div class="d-flex gap-2 mt-2">
-                                    <a class="btn btn-primary flex-fill" href="<?= url('/sewa', ['paket' => $package['slug']]) ?>" data-sewa-link><i class="bi bi-calendar-check me-1"></i> Sewa paket ini</a>
-                                    <button type="button" class="btn btn-outline-primary btn-ransel" data-ransel-add="package:<?= (int) $package['id'] ?>" data-name="<?= e($package['name']) ?>" aria-label="Masukkan <?= e($package['name']) ?> ke ransel"><i class="bi bi-plus-lg" aria-hidden="true"></i><i class="bi bi-backpack" aria-hidden="true"></i></button>
-                                </div>
-                            <?php endif ?>
-                        </div>
-                    </div>
+    <div class="pkg-list">
+        <?php foreach ($packages as $package): $saving = (float) $package['normal_daily'] - (float) $package['daily_price']; ?>
+            <article class="pkg-row lamp" id="<?= e($package['slug']) ?>" aria-labelledby="pkg-<?= (int) $package['id'] ?>">
+                <div class="pkg-board" aria-label="Isi <?= e($package['name']) ?>">
+                    <?php foreach ($package['items'] as $line): ?>
+                        <a class="pkg-obj" href="<?= url('/alat/' . $line['slug']) ?>" title="<?= e($line['name']) ?> ×<?= (int) $line['quantity'] ?>">
+                            <span class="pkg-obj-art" aria-hidden="true"><?php App\Core\View::partial('gear-glyph', ['item' => $line]) ?></span>
+                            <span class="pkg-obj-name"><?= e($line['name']) ?></span>
+                            <?php if ((int) $line['quantity'] > 1): ?><span class="obj-qty">×<?= (int) $line['quantity'] ?></span><?php endif ?>
+                        </a>
+                    <?php endforeach ?>
                 </div>
-            </div>
+
+                <div class="pkg-info">
+                    <p class="eyebrow">Paket<?= (int) $package['sleepers'] > 0 ? ' · untuk sekitar ' . (int) $package['sleepers'] . ' orang' : '' ?></p>
+                    <div class="d-flex flex-wrap align-items-center gap-2">
+                        <h2 class="pkg-name" id="pkg-<?= (int) $package['id'] ?>"><?= e($package['name']) ?></h2>
+                        <?php if ((float) $package['discount_percent'] > 0): ?><span class="tag tag-cta">Hemat <?= (float) $package['discount_percent'] ?>%</span><?php endif ?>
+                    </div>
+                    <p class="pkg-desc"><?= e($package['description']) ?></p>
+                    <dl class="pkg-price">
+                        <div><dt>Harga satuan</dt><dd><s class="mono"><?= rupiah($package['normal_daily']) ?></s></dd></div>
+                        <div><dt>Harga paket</dt><dd class="pkg-big"><?= rupiah($package['daily_price']) ?><small>/hari</small></dd></div>
+                        <?php if ($saving > 0): ?><div><dt>Hemat</dt><dd class="pkg-save"><?= rupiah($saving) ?>/hari</dd></div><?php endif ?>
+                    </dl>
+                    <?php if (!$package['is_available']): ?>
+                        <div class="alert alert-warning small py-2 mb-0">Sebagian alat di paket ini sedang tidak disewakan.</div>
+                    <?php else: ?>
+                        <button type="button" class="avail-line" data-trip-open data-avail-pkg="<?= (int) $package['id'] ?>" data-avail-empty="Pilih tanggal untuk cek ketersediaan paket">Pilih tanggal untuk cek ketersediaan paket</button>
+                        <div class="pkg-actions">
+                            <button type="button" class="btn btn-cta btn-ransel" data-ransel-add="package:<?= (int) $package['id'] ?>" data-name="<?= e($package['name']) ?>"><i class="bi bi-backpack" aria-hidden="true"></i> Masukkan ke ransel</button>
+                            <a class="btn btn-outline-primary" href="<?= url('/sewa', ['paket' => $package['slug']]) ?>" data-sewa-link><i class="bi bi-calendar-check me-1" aria-hidden="true"></i> Sewa paket ini</a>
+                        </div>
+                    <?php endif ?>
+                </div>
+            </article>
         <?php endforeach ?>
     </div>
+
+    <?php if (count($packages) > 1): ?>
+        <section class="pkg-compare" aria-labelledby="compare-title">
+            <div class="scene-head mb-3">
+                <p class="eyebrow">Bandingkan</p>
+                <h2 id="compare-title">Isi setiap paket</h2>
+            </div>
+            <div class="table-responsive">
+                <table class="table align-middle compare-table">
+                    <thead>
+                        <tr>
+                            <th scope="col">Alat</th>
+                            <?php foreach ($packages as $package): ?><th scope="col" class="text-center"><?= e(preg_replace('/^Paket\s+/i', '', $package['name'])) ?></th><?php endforeach ?>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($compareRows as $row): ?>
+                            <tr>
+                                <th scope="row"><a href="<?= url('/alat/' . $row['slug']) ?>"><?= e($row['name']) ?></a></th>
+                                <?php foreach ($packages as $package): $n = $row['qty'][(int) $package['id']] ?? 0; ?>
+                                    <td class="text-center<?= $n === 0 ? ' text-muted' : ' fw-semibold' ?>"><?= $n === 0 ? '–' : '×' . $n ?></td>
+                                <?php endforeach ?>
+                            </tr>
+                        <?php endforeach ?>
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <th scope="row">Harga per hari</th>
+                            <?php foreach ($packages as $package): ?><td class="text-center mono fw-semibold"><?= rupiah($package['daily_price']) ?></td><?php endforeach ?>
+                        </tr>
+                        <tr>
+                            <th scope="row">Untuk sekitar</th>
+                            <?php foreach ($packages as $package): ?><td class="text-center"><?= (int) $package['sleepers'] > 0 ? (int) $package['sleepers'] . ' orang' : '–' ?></td><?php endforeach ?>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </section>
+    <?php endif ?>
 </div>

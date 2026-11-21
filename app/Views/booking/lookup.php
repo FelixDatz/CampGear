@@ -1,9 +1,17 @@
 <?php /** @var string $code */ ?>
-<div class="container py-5">
-    <div class="row justify-content-center">
-        <div class="col-sm-10 col-md-7 col-lg-5">
-            <div class="card auth-card">
-                <div class="card-body p-4 p-md-5">
+<div class="container auth-wrap">
+    <div class="auth-split">
+        <?php App\Core\View::partial('auth-aside', [
+            'title'  => 'Cari tiket ekspedisimu.',
+            'points' => [
+                ['bi-upc', 'Kode booking tampil di tiket setelah booking dibuat, formatnya CG…-….'],
+                ['bi-at', 'Pakai email atau nomor HP yang sama dengan saat booking.'],
+                ['bi-qr-code', 'Setelah dibayar, QR pengambilan alat tampil di tiket.'],
+            ],
+        ]) ?>
+        <div class="auth-main">
+            <div class="auth-card">
+                <div class="auth-form">
                     <h1 class="h3 mb-1">Cek Status Booking</h1>
                     <p class="text-muted mb-4">Masukkan kode booking beserta email atau nomor HP yang dipakai saat memesan.</p>
 

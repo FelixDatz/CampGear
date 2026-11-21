@@ -90,4 +90,25 @@
             preview.classList.remove('d-none');
         });
     });
+
+    // ---- Tema terang/gelap -----------------------------------------------
+    // Disimpan di kunci yang sama dengan situs publik (u = posisi matahari:
+    // 0,5 = siang, 1 = malam), jadi pilihan tema ikut terbawa ke halaman publik.
+    const themeButton = document.querySelector('[data-panel-theme]');
+    const applyTheme = (dark) => {
+        const root = document.documentElement;
+        root.setAttribute('data-theme', dark ? 'dark' : 'light');
+        root.setAttribute('data-bs-theme', dark ? 'dark' : 'light');
+        root.setAttribute('data-langit', dark ? 'malam' : 'siang');
+        if (themeButton) themeButton.innerHTML = `<i class="bi ${dark ? 'bi-sun' : 'bi-moon-stars'}" aria-hidden="true"></i>`;
+        document.dispatchEvent(new CustomEvent('campgear:theme', { detail: { theme: dark ? 'dark' : 'light' } }));
+    };
+    if (themeButton) {
+        applyTheme(document.documentElement.getAttribute('data-theme') === 'dark');
+        themeButton.addEventListener('click', () => {
+            const dark = document.documentElement.getAttribute('data-theme') !== 'dark';
+            try { localStorage.setItem('cg-langit', JSON.stringify({ u: dark ? 1 : 0.5, manual: true })); } catch { /* penyimpanan tidak tersedia */ }
+            applyTheme(dark);
+        });
+    }
 })();

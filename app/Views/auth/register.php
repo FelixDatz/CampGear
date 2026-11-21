@@ -1,8 +1,16 @@
-<div class="container py-5">
-    <div class="row justify-content-center">
-        <div class="col-sm-10 col-md-8 col-lg-6">
-            <div class="card auth-card">
-                <div class="card-body p-4 p-md-5">
+<div class="container auth-wrap">
+    <div class="auth-split">
+        <?php App\Core\View::partial('auth-aside', [
+            'title'  => 'Buat akun, perjalanan berikutnya lebih cepat.',
+            'points' => [
+                ['bi-lightning-charge', 'Form booking terisi otomatis dengan data kontakmu.'],
+                ['bi-envelope-check', 'Booking tamu dengan email yang sama ikut tampil di akunmu.'],
+                ['bi-shield-check', 'Password disimpan dalam bentuk hash, tidak pernah teks asli.'],
+            ],
+        ]) ?>
+        <div class="auth-main">
+            <div class="auth-card">
+                <div class="auth-form">
                     <h1 class="h3 mb-1">Daftar Akun</h1>
                     <p class="text-muted mb-4">Dengan akun, riwayat sewa dan status pembatalanmu tersimpan di satu tempat.</p>
 
