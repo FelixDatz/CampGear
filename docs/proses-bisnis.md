@@ -86,7 +86,7 @@ sequenceDiagram
     B-->>P: Ringkasan biaya, tanda kekurangan stok
     P->>S: Kirim form (token CSRF)
     S->>S: Validasi input & aturan tanggal
-    S->>DB: BEGIN; SELECT alat ... FOR UPDATE
+    S->>DB: Mulai transaksi dan kunci baris alat
     S->>DB: Hitung pemakaian per hari
     alt stok cukup
         S->>DB: INSERT booking + rincian (tarif snapshot); COMMIT
@@ -96,6 +96,8 @@ sequenceDiagram
         S-->>P: Kembali ke form + pesan alat yang kurang
     end
 ```
+
+
 
 **Perhitungan stok per hari.** Untuk setiap alat dan setiap tanggal dalam rentang sewa, sistem menjumlahkan unit yang dipakai booking aktif pada tanggal itu. Unit tersedia = stok total − pemakaian tertinggi di salah satu hari. Contoh: stok 5, booking A tanggal 10–12 dan booking B tanggal 14–15 masing-masing 3 unit. Untuk permintaan tanggal 10–15, puncak pemakaian 3 sehingga tersedia 2 unit (bukan −1 seperti bila A dan B dijumlah langsung).
 

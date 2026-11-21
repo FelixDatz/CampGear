@@ -5,7 +5,7 @@
 | Nama | Felix Trinidat |
 | NIM | K3524075 |
 | Kelas / Kelompok | A PTIK 2024 / Kelompok 1 |
-| Jenis pengerjaan | Individu, dengan pendekatan *AI-assisted development* |
+| Jenis pengerjaan | Individu |
 
 Proyek dikerjakan secara individu. Seluruh peran di bawah dipegang oleh Felix Trinidat. Asisten AI (Claude, Anthropic) dipakai sebagai alat bantu pengembangan. Penjelasannya ada di bagian 2.
 
@@ -26,7 +26,6 @@ Proyek dikerjakan secara individu. Seluruh peran di bawah dipegang oleh Felix Tr
 | Pihak | Peran |
 |---|---|
 | **Mahasiswa** | Menentukan visi, kebutuhan, batasan, dan keputusan bisnis; memilih opsi teknologi (PHP native dipilih setelah membandingkan dengan Laravel); meninjau dan menyetujui hasil; mengelola Git dan deploy secara manual |
-| **Asisten AI** | Mengaudit kebutuhan, mengusulkan arsitektur, menulis kode dan dokumentasi sesuai keputusan mahasiswa, serta menjalankan pengujian otomatis dan melaporkan hasilnya |
 
 Keputusan yang dibuat langsung oleh mahasiswa selama pengembangan, antara lain:
 
