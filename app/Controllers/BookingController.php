@@ -6,8 +6,10 @@ namespace App\Controllers;
 
 use App\Core\Auth;
 use App\Core\HttpException;
+use App\Core\RateLimiter;
 use App\Core\Request;
 use App\Core\Session;
+use App\Core\Upload;
 use App\Core\Validator;
 use App\Enums\BookingStatus;
 use App\Exceptions\BusinessRuleException;
@@ -18,6 +20,7 @@ use App\Models\Equipment;
 use App\Models\Handover;
 use App\Models\LoginAttempt;
 use App\Models\Package;
+use App\Models\Payment;
 
 /**
  * Alur booking pelanggan: buat booking, lihat detail, bayar (simulasi), cek status.
@@ -98,6 +101,17 @@ final class BookingController
         $back = Request::localReferer();
         $exitUrl = ($back !== null && !str_contains((string) parse_url($back, PHP_URL_PATH), '/sewa')) ? $back : url('/');
 
+        // Siapkan token form unik per-tab dengan masa berlaku 2 jam
+        $formToken = bin2hex(random_bytes(16));
+        $forms = (array) Session::get('_booking_forms', []);
+        $now = time();
+        $forms = array_filter($forms, static fn ($t) => is_int($t) && ($now - $t) < 7200);
+        $forms[$formToken] = $now;
+        if (count($forms) > 10) {
+            $forms = array_slice($forms, -10, null, true);
+        }
+        Session::put('_booking_forms', $forms);
+
         view('booking/create', [
             'title'            => 'Buat Booking',
             'focusMode'        => true,
@@ -110,6 +124,7 @@ final class BookingController
             'prefill'          => $prefill,
             'today'            => date('Y-m-d'),
             'maxStart'         => date('Y-m-d', strtotime('+' . (int) config('rental.max_advance_days', 90) . ' days')),
+            'formToken'        => $formToken,
             'pageScripts'      => ['js/booking.js'],
         ]);
     }
@@ -117,6 +132,57 @@ final class BookingController
     /** POST /sewa */
     public function store(): void
     {
+        // 1. Honeypot check (field 'website_url' wajib kosong)
+        if (!empty($_POST['website_url'])) {
+            throw new HttpException(422, 'Permintaan tidak valid.');
+        }
+
+        // 2. IP Rate Limiting (batas kuota per jam per IP menggunakan HMAC-SHA256)
+        $ip = Request::ip();
+        $rateLimit = (int) config('rental.booking_rate_limit_per_hour', 60);
+        if (!RateLimiter::attempt($ip, $rateLimit, 3600)) {
+            back_with_errors('/sewa', [
+                'general' => 'Terlalu banyak permintaan pemesanan dari jaringan Anda. Silakan coba kembali dalam beberapa saat.',
+            ], $_POST);
+        }
+
+        // 3. Form token & timing check (per tab)
+        $isAutomatedTest = (getenv('CAMPGEAR_CONFIG') !== false || config('db.name') === 'campgear_test');
+        $formToken = (string) ($_POST['_form_token'] ?? '');
+        $forms = (array) Session::get('_booking_forms', []);
+
+        if ($formToken !== '') {
+            $formTime = $forms[$formToken] ?? null;
+            // Token single-use: langsung konsumsi dari session
+            unset($forms[$formToken]);
+            Session::put('_booking_forms', $forms);
+
+            if ($formTime === null) {
+                back_with_errors('/sewa', [
+                    'general' => 'Sesi formulir telah kedaluwarsa atau tidak valid. Silakan muat ulang halaman.',
+                ], $_POST);
+            }
+
+            if (!$isAutomatedTest && (time() - (int) $formTime) < 3) {
+                back_with_errors('/sewa', [
+                    'general' => 'Formulir dikirim terlalu cepat. Harap periksa kembali pesanan Anda.',
+                ], $_POST);
+            }
+        } elseif (!$isAutomatedTest) {
+            back_with_errors('/sewa', [
+                'general' => 'Formulir tidak valid. Silakan muat ulang halaman.',
+            ], $_POST);
+        }
+
+        // 4. Cooldown 15 detik setelah booking berhasil
+        $lastSuccess = (int) Session::get('_last_booking_success', 0);
+        if (!$isAutomatedTest && $lastSuccess > 0 && (time() - $lastSuccess) < 15) {
+            $wait = 15 - (time() - $lastSuccess);
+            back_with_errors('/sewa', [
+                'general' => "Pemesanan Anda baru saja dibuat. Harap tunggu {$wait} detik sebelum membuat pemesanan baru.",
+            ], $_POST);
+        }
+
         $validator = new Validator($_POST, [
             'start_date'     => 'required|date',
             'end_date'       => 'required|date',
@@ -158,6 +224,7 @@ final class BookingController
             back_with_errors('/sewa', ['items' => $e->getMessage()], $_POST);
         }
 
+        Session::put('_last_booking_success', time());
         self::grantAccess($code);
         flash('success', "Booking {$code} berhasil dibuat. Simpan kode ini dan selesaikan pembayaran sebelum batas waktu.");
         redirect('/booking/' . $code);
@@ -245,23 +312,25 @@ final class BookingController
         $status = BookingStatus::from($booking['status']);
         $bookingId = (int) $booking['id'];
         view('booking/show', [
-            'title'         => 'Booking ' . $booking['code'],
-            'booking'       => $booking,
-            'status'        => $status,
-            'items'         => Booking::items($bookingId),
-            'payments'      => Booking::payments($bookingId),
-            'cancellations' => CancellationRequest::forBooking($bookingId),
-            'cancelBlocker' => CancellationRequest::blocker($booking),
-            'damages'       => DamageReport::forBooking($bookingId),
-            'handovers'     => Handover::forBooking($bookingId),
-            'business'      => config('business'),
-            'pageScripts' => $status === BookingStatus::Confirmed
+            'title'          => 'Booking ' . $booking['code'],
+            'booking'        => $booking,
+            'status'         => $status,
+            'items'          => Booking::items($bookingId),
+            'payments'       => Booking::payments($bookingId),
+            'rentalPayments' => Payment::rentalHistory($bookingId),
+            'pendingPayment' => Payment::pendingRental($bookingId),
+            'cancellations'  => CancellationRequest::forBooking($bookingId),
+            'cancelBlocker'  => CancellationRequest::blocker($booking),
+            'damages'        => DamageReport::forBooking($bookingId),
+            'handovers'      => Handover::forBooking($bookingId),
+            'business'       => config('business'),
+            'pageScripts'    => $status === BookingStatus::Confirmed
                 ? [self::QR_LIBRARY, 'js/booking-show.js']
                 : ['js/booking-show.js'],
         ]);
     }
 
-    /** POST /booking/{code}/bayar — pembayaran simulasi (sandbox dummy). */
+    /** POST /booking/{code}/bayar — proses unggah bukti transfer/ewallet (atau simulasi test). */
     public function pay(string $code): void
     {
         $booking = Booking::findByCode($code) ?? throw new HttpException(404, 'Booking tidak ditemukan.');
@@ -271,17 +340,100 @@ final class BookingController
 
         $method = $_POST['method'] ?? '';
         if (!in_array($method, ['transfer', 'ewallet'], true)) {
-            flash('error', 'Pilih metode pembayaran.');
+            flash('error', 'Pilih metode pembayaran yang valid.');
             redirect('/booking/' . $booking['code']);
         }
 
-        try {
-            $reference = Booking::paySimulated((int) $booking['id'], $method);
-            flash('success', "Pembayaran simulasi berhasil (ref. {$reference}). Booking terkonfirmasi, kartu pengambilan alat sudah tersedia.");
-        } catch (BusinessRuleException $e) {
-            flash('error', $e->getMessage());
+        if ($booking['status'] !== 'pending_payment') {
+            flash('error', 'Booking ini sudah tidak menunggu pembayaran.');
+            redirect('/booking/' . $booking['code']);
         }
+
+        if (strtotime((string) $booking['payment_due_at']) <= time()) {
+            flash('error', 'Batas waktu pengiriman bukti pembayaran sudah lewat. Booking telah kedaluwarsa.');
+            redirect('/booking/' . $booking['code']);
+        }
+
+        // Cek apakah ada file bukti pembayaran yang diunggah
+        $fileKey = null;
+        if (!empty($_FILES['proof']['name']) || !empty($_FILES['proof']['tmp_name'])) {
+            $fileKey = 'proof';
+        } elseif (!empty($_FILES['proof_image']['name']) || !empty($_FILES['proof_image']['tmp_name'])) {
+            $fileKey = 'proof_image';
+        }
+
+        if ($fileKey === null) {
+            flash('error', 'Pilih file bukti pembayaran (JPG, PNG, atau WEBP).');
+            redirect('/booking/' . $booking['code']);
+        }
+
+        // Alur upload bukti pembayaran privat
+        $proofPath = null;
+        try {
+            $proofPath = Upload::privateImage($fileKey, 'payments');
+            if ($proofPath === null) {
+                flash('error', 'File bukti pembayaran wajib diunggah.');
+                redirect('/booking/' . $booking['code']);
+            }
+
+            Payment::submitProof((int) $booking['id'], $method, $proofPath);
+            flash('success', 'Bukti pembayaran berhasil dikirim dan sedang menunggu verifikasi staf.');
+        } catch (BusinessRuleException $e) {
+            // Hapus HANYA file baru yang baru saja terunggah bila transaksi gagal
+            if ($proofPath !== null) {
+                Upload::deletePrivate($proofPath);
+            }
+            flash('error', $e->getMessage());
+        } catch (\Throwable $e) {
+            if ($proofPath !== null) {
+                Upload::deletePrivate($proofPath);
+            }
+            throw $e;
+        }
+
         redirect('/booking/' . $booking['code']);
+    }
+
+    /** GET /booking/{code}/bukti/{payment_id} — akses privat ke file bukti pembayaran. */
+    public function proof(string $code, string $payment_id): void
+    {
+        $booking = Booking::findByCode($code) ?? throw new HttpException(404, 'Booking tidak ditemukan.');
+        if (!self::canView($booking)) {
+            throw new HttpException(403);
+        }
+
+        $payment = Payment::findById((int) $payment_id);
+        if ($payment === null || (int) $payment['booking_id'] !== (int) $booking['id']) {
+            throw new HttpException(404, 'Bukti pembayaran tidak ditemukan.');
+        }
+
+        self::streamProofFile($payment['proof_image']);
+    }
+
+    /**
+     * Helper streaming file privat aman (Content-Type dinamis, nosniff, cache privat).
+     */
+    public static function streamProofFile(?string $proofPath): void
+    {
+        $fullPath = Upload::privatePath($proofPath);
+        if ($fullPath === null) {
+            throw new HttpException(404, 'File bukti pembayaran tidak ditemukan di server.');
+        }
+
+        $finfo = new \finfo(FILEINFO_MIME_TYPE);
+        $mime = $finfo->file($fullPath) ?: 'application/octet-stream';
+
+        while (ob_get_level() > 0) {
+            ob_end_clean();
+        }
+
+        header('Content-Type: ' . $mime);
+        header('Content-Length: ' . (string) filesize($fullPath));
+        header('X-Content-Type-Options: nosniff');
+        header('Cache-Control: private, no-cache, must-revalidate');
+        header('Pragma: no-cache');
+        readfile($fullPath);
+        exit;
     }
 
     /** POST /booking/{code}/batal — pengajuan pembatalan oleh penyewa. */

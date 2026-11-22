@@ -43,7 +43,9 @@ final class Availability
         );
 
         // 2. Rincian booking aktif yang tanggalnya beririsan dengan rentang yang diminta.
-        //    Booking pending yang sudah lewat batas bayar tidak dihitung.
+        //    Booking pending_payment yang sudah lewat deadline DAN tidak ada bukti pending
+        //    tidak dihitung (sama seperti expired).
+        //    Booking dengan bukti pending yang dikirim sebelum deadline tetap menahan stok.
         $statuses = BookingStatus::holdingStock();
         $statusPlaceholders = implode(',', array_fill(0, count($statuses), '?'));
         $rows = Database::select(
@@ -51,7 +53,16 @@ final class Availability
              FROM booking_items bi
              JOIN bookings b ON b.id = bi.booking_id
              WHERE b.status IN ({$statusPlaceholders})
-               AND NOT (b.status = 'pending_payment' AND b.payment_due_at <= NOW())
+               AND NOT (
+                   b.status = 'pending_payment'
+                   AND b.payment_due_at <= NOW()
+                   AND NOT EXISTS (
+                       SELECT 1 FROM payments
+                       WHERE payments.booking_id = b.id
+                         AND payments.purpose = 'rental'
+                         AND payments.status = 'pending'
+                   )
+               )
                AND b.start_date <= ? AND b.end_date >= ?" . sprintf($filter, 'bi.equipment_id'),
             [...$statuses, $end, $start, ...$equipmentIds],
         );
@@ -96,7 +107,16 @@ final class Availability
              JOIN bookings b ON b.id = bi.booking_id
              WHERE bi.equipment_id = ?
                AND b.status IN ({$placeholders})
-               AND NOT (b.status = 'pending_payment' AND b.payment_due_at <= NOW())
+               AND NOT (
+                   b.status = 'pending_payment'
+                   AND b.payment_due_at <= NOW()
+                   AND NOT EXISTS (
+                       SELECT 1 FROM payments
+                       WHERE payments.booking_id = b.id
+                         AND payments.purpose = 'rental'
+                         AND payments.status = 'pending'
+                   )
+               )
                AND b.end_date >= ?
                AND b.id <> ?",
             [$equipmentId, ...$statuses, $today, $excludeBookingId ?? 0],

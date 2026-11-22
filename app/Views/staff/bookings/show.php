@@ -17,12 +17,16 @@ $code = $booking['code'];
 $base = '/staff/booking/' . $code;
 $unsettled = count(array_filter($damages, static fn ($d) => $d['status'] === 'unsettled'));
 $pendingCancel = array_values(array_filter($cancellations, static fn ($c) => $c['status'] === 'pending'));
-$methodLabels = ['transfer' => 'Transfer', 'ewallet' => 'E-wallet', 'cash' => 'Tunai'];
+$methodLabels = ['transfer' => 'Transfer bank', 'ewallet' => 'E-wallet', 'cash' => 'Tunai'];
 $isLate = $booking['status'] === 'picked_up' && $booking['end_date'] < date('Y-m-d');
+$pendingPayment = $pendingPayment ?? null;
+$rentalPayments = $rentalPayments ?? [];
 
 // Langkah berikutnya bagi staf, sesuai status booking.
 [$nextTitle, $nextText, $nextTone] = match ($status) {
-    BookingStatus::PendingPayment => ['Tunggu pembayaran', 'Batas bayar ' . tanggal($booking['payment_due_at'], true, true) . '. Bila penyewa membayar tunai di lokasi, catat di bawah.', 'warn'],
+    BookingStatus::PendingPayment => $pendingPayment !== null
+        ? ['Verifikasi pembayaran', 'Penyewa telah mengunggah bukti transfer/e-wallet. Periksa bukti lalu setujui atau tolak.', 'accent']
+        : ['Tunggu pembayaran', 'Batas bayar ' . tanggal($booking['payment_due_at'], true, true) . '. Bila penyewa membayar tunai di lokasi, catat di bawah.', 'warn'],
     BookingStatus::Confirmed      => $canPickup
         ? ['Serah terima pengambilan', 'Periksa setiap alat bersama penyewa, isi checklist, catat deposit bila ada, lalu serahkan alat.', 'accent']
         : ['Belum bisa diambil', date('Y-m-d') < $booking['start_date'] ? 'Pengambilan dapat dicatat mulai ' . tanggal($booking['start_date'], true) . '.' : 'Periode sewa sudah lewat tanpa pengambilan alat.', 'muted'],
@@ -70,11 +74,109 @@ $isLate = $booking['status'] === 'picked_up' && $booking['end_date'] < date('Y-m
 
         <?php /* ---- Aksi sesuai status ---- */ ?>
         <?php if ($status === BookingStatus::PendingPayment): ?>
+            <?php if ($pendingPayment !== null): ?>
+                <div class="card mb-3 border-primary">
+                    <div class="card-header bg-primary-subtle d-flex align-items-center justify-content-between">
+                        <span class="fw-semibold text-primary-emphasis"><i class="bi bi-patch-check me-1"></i> Verifikasi Bukti Pembayaran</span>
+                        <span class="badge text-bg-warning">Menunggu Verifikasi</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3 align-items-center mb-3">
+                            <div class="col-md-5 text-center">
+                                <?php if (!empty($pendingPayment['proof_image'])): ?>
+                                    <div class="border rounded p-1 bg-body-tertiary">
+                                        <a href="<?= url($base . '/bukti/' . $pendingPayment['id']) ?>" target="_blank" rel="noopener" title="Klik untuk membuka ukuran penuh">
+                                            <img src="<?= url($base . '/bukti/' . $pendingPayment['id']) ?>" alt="Bukti Pembayaran <?= e($code) ?>" class="img-fluid rounded" style="max-height: 240px; object-fit: contain;">
+                                        </a>
+                                        <div class="mt-1">
+                                            <a href="<?= url($base . '/bukti/' . $pendingPayment['id']) ?>" target="_blank" rel="noopener" class="small text-decoration-none">
+                                                <i class="bi bi-box-arrow-up-right me-1"></i> Buka Ukuran Penuh
+                                            </a>
+                                        </div>
+                                    </div>
+                                <?php else: ?>
+                                    <div class="alert alert-secondary py-4 small mb-0">Tidak ada file gambar bukti</div>
+                                <?php endif ?>
+                            </div>
+                            <div class="col-md-7">
+                                <dl class="row small mb-0">
+                                    <dt class="col-sm-4 text-muted">Metode</dt>
+                                    <dd class="col-sm-8 fw-semibold"><?= e($methodLabels[$pendingPayment['method']] ?? $pendingPayment['method']) ?></dd>
+
+                                    <dt class="col-sm-4 text-muted">Nominal</dt>
+                                    <dd class="col-sm-8 fw-bold fs-6 text-primary"><?= rupiah($pendingPayment['amount']) ?></dd>
+
+                                    <dt class="col-sm-4 text-muted">Total Tagihan</dt>
+                                    <dd class="col-sm-8"><?= rupiah($booking['grand_total']) ?></dd>
+
+                                    <dt class="col-sm-4 text-muted">Waktu Kirim</dt>
+                                    <dd class="col-sm-8"><?= e(tanggal($pendingPayment['created_at'], true, true)) ?> WIB</dd>
+
+                                    <dt class="col-sm-4 text-muted">Batas Bayar</dt>
+                                    <dd class="col-sm-8"><?= e(tanggal($booking['payment_due_at'], true, true)) ?> WIB</dd>
+                                </dl>
+
+                                <div class="alert alert-info py-2 px-3 small mt-3 mb-0">
+                                    <i class="bi bi-info-circle me-1"></i> Pastikan nama pengirim, nominal transfer, dan tanggal transaksi pada bukti sesuai dengan tagihan booking.
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-flex flex-wrap gap-2 pt-2 border-top">
+                            <form method="post" action="<?= url($base . '/pembayaran/' . $pendingPayment['id'] . '/setujui') ?>"
+                                  data-confirm="Setujui pembayaran sewa <?= e(rupiah($pendingPayment['amount'])) ?> untuk booking <?= e($code) ?>? Status booking akan berubah menjadi Terkonfirmasi.">
+                                <?= csrf_field() ?>
+                                <button class="btn btn-success" type="submit">
+                                    <i class="bi bi-check-circle me-1"></i> Setujui Pembayaran
+                                </button>
+                            </form>
+
+                            <button class="btn btn-outline-danger" type="button" data-bs-toggle="modal" data-bs-target="#rejectPaymentModal">
+                                <i class="bi bi-x-circle me-1"></i> Tolak Pembayaran
+                            </button>
+
+                            <span class="text-muted small align-self-center ms-auto">
+                                ID Pembayaran: #<?= (int) $pendingPayment['id'] ?>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Modal Penolakan Pembayaran -->
+                <div class="modal fade" id="rejectPaymentModal" tabindex="-1" aria-labelledby="rejectPaymentModalLabel" aria-hidden="true">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <form method="post" action="<?= url($base . '/pembayaran/' . $pendingPayment['id'] . '/tolak') ?>">
+                                <?= csrf_field() ?>
+                                <div class="modal-header">
+                                    <h5 class="modal-title h6" id="rejectPaymentModalLabel"><i class="bi bi-exclamation-triangle text-danger me-1"></i> Tolak Bukti Pembayaran</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <p class="small text-muted mb-3">
+                                        Penyewa dapat melihat alasan penolakan dan mengunggah bukti pengganti jika batas waktu pembayaran belum terlewati.
+                                    </p>
+                                    <div class="mb-3">
+                                        <label for="reject_note" class="form-label small fw-semibold">Alasan Penolakan <span class="text-danger">*</span></label>
+                                        <textarea class="form-control form-control-sm" id="reject_note" name="note" rows="3" maxlength="255" required placeholder="mis. Bukti transfer buram / nominal tidak sesuai / nama pengirim tidak cocok"></textarea>
+                                        <div class="form-text small">Maksimal 255 karakter. Wajib diisi.</div>
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Batal</button>
+                                    <button type="submit" class="btn btn-sm btn-danger"><i class="bi bi-x-circle me-1"></i> Konfirmasi Tolak</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            <?php endif ?>
+
             <div class="card mb-3 border-warning">
                 <div class="card-body">
-                    <h2 class="h6"><i class="bi bi-cash-coin me-1"></i> Menunggu pembayaran</h2>
+                    <h2 class="h6"><i class="bi bi-cash-coin me-1"></i> Pembayaran tunai di lokasi</h2>
                     <p class="small mb-3">Batas bayar <?= e(tanggal($booking['payment_due_at'], true, true)) ?>. Bila penyewa membayar tunai di lokasi, catat di sini.</p>
-                    <form method="post" action="<?= url($base . '/bayar') ?>" data-confirm="Catat pembayaran tunai <?= e(rupiah($booking['grand_total'])) ?>?">
+                    <form method="post" action="<?= url($base . '/bayar') ?>" data-confirm="Catat pembayaran tunai <?= e(rupiah($booking['grand_total'])) ?> untuk booking <?= e($code) ?>?">
                         <?= csrf_field() ?>
                         <button class="btn btn-primary" type="submit"><i class="bi bi-check2-circle me-1"></i> Terima tunai <?= rupiah($booking['grand_total']) ?></button>
                     </form>
@@ -204,6 +306,77 @@ $isLate = $booking['status'] === 'picked_up' && $booking['end_date'] < date('Y-m
             </div>
         <?php endif ?>
 
+        <?php if ($rentalPayments !== []): ?>
+            <div class="card mb-3">
+                <div class="card-body">
+                    <h2 class="h6 mb-3"><i class="bi bi-receipt-cutoff me-1"></i> Riwayat Pembayaran Sewa</h2>
+                    <div class="table-responsive">
+                        <table class="table table-sm align-middle mb-0">
+                            <thead>
+                                <tr class="small text-muted">
+                                    <th>Status</th>
+                                    <th>Metode</th>
+                                    <th>Nominal</th>
+                                    <th>Waktu Kirim</th>
+                                    <th>Diverifikasi Oleh</th>
+                                    <th>Waktu / Catatan</th>
+                                    <th class="text-end">Bukti</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                            <?php foreach ($rentalPayments as $rp): ?>
+                                <tr class="<?= $rp['status'] === 'pending' ? 'table-warning bg-opacity-25' : '' ?>">
+                                    <td>
+                                        <?php if ($rp['status'] === 'paid'): ?>
+                                            <span class="badge text-bg-success">Disetujui</span>
+                                        <?php elseif ($rp['status'] === 'pending'): ?>
+                                            <span class="badge text-bg-warning">Menunggu</span>
+                                        <?php elseif ($rp['status'] === 'failed'): ?>
+                                            <span class="badge text-bg-danger">Ditolak</span>
+                                        <?php endif ?>
+                                    </td>
+                                    <td><?= e($methodLabels[$rp['method']] ?? $rp['method']) ?></td>
+                                    <td class="fw-semibold"><?= rupiah($rp['amount']) ?></td>
+                                    <td class="small"><?= e(tanggal($rp['created_at'], false, true)) ?></td>
+                                    <td class="small">
+                                        <?php if (!empty($rp['staff_name'])): ?>
+                                            <i class="bi bi-person-badge me-1"></i><?= e($rp['staff_name']) ?>
+                                        <?php else: ?>
+                                            <span class="text-muted">–</span>
+                                        <?php endif ?>
+                                    </td>
+                                    <td class="small">
+                                        <?php if ($rp['status'] === 'paid' && !empty($rp['paid_at'])): ?>
+                                            <span class="text-success"><i class="bi bi-check2 me-1"></i><?= e(tanggal($rp['paid_at'], false, true)) ?></span>
+                                        <?php elseif ($rp['status'] === 'failed'): ?>
+                                            <?php if (!empty($rp['rejected_at'])): ?>
+                                                <div class="text-muted mb-1"><i class="bi bi-clock me-1"></i><?= e(tanggal($rp['rejected_at'], false, true)) ?></div>
+                                            <?php endif ?>
+                                            <?php if (!empty($rp['note'])): ?>
+                                                <div class="text-danger" title="<?= e($rp['note']) ?>">Alasan: <?= e($rp['note']) ?></div>
+                                            <?php endif ?>
+                                        <?php else: ?>
+                                            <span class="text-muted">–</span>
+                                        <?php endif ?>
+                                    </td>
+                                    <td class="text-end">
+                                        <?php if (!empty($rp['proof_image'])): ?>
+                                            <a href="<?= url($base . '/bukti/' . $rp['id']) ?>" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary py-0 px-2" style="font-size: 0.8rem;">
+                                                <i class="bi bi-eye me-1"></i>Lihat
+                                            </a>
+                                        <?php else: ?>
+                                            <span class="text-muted small">–</span>
+                                        <?php endif ?>
+                                    </td>
+                                </tr>
+                            <?php endforeach ?>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        <?php endif ?>
+
         <div class="card mb-3">
             <div class="card-body">
                 <h2 class="h6">Rincian alat</h2>
@@ -288,9 +461,30 @@ $isLate = $booking['status'] === 'picked_up' && $booking['end_date'] < date('Y-m
                 </dl>
                 <?php foreach ($payments as $payment): ?>
                     <div class="small border-top pt-2 mt-2">
-                        <i class="bi bi-check-circle-fill text-success"></i>
-                        <?= $payment['purpose'] === 'damage' ? 'Penggantian' : 'Sewa' ?> · <?= e($methodLabels[$payment['method']] ?? $payment['method']) ?> · <?= rupiah($payment['amount']) ?>
-                        <div class="text-muted">Ref. <?= e($payment['reference']) ?> · <?= e(tanggal($payment['paid_at'], false, true)) ?></div>
+                        <?php if ($payment['status'] === 'paid'): ?>
+                            <i class="bi bi-check-circle-fill text-success" aria-hidden="true"></i>
+                            <?= $payment['purpose'] === 'damage' ? 'Penggantian' : 'Sewa' ?> · <?= e($methodLabels[$payment['method']] ?? $payment['method']) ?> · <?= rupiah($payment['amount']) ?>
+                            <span class="badge text-bg-success ms-1">Lunas</span>
+                            <div class="text-muted">Ref. <?= e($payment['reference']) ?> · <?= e(tanggal($payment['paid_at'] ?? $payment['created_at'], false, true)) ?></div>
+                        <?php elseif ($payment['status'] === 'pending'): ?>
+                            <i class="bi bi-hourglass-split text-warning" aria-hidden="true"></i>
+                            <?= $payment['purpose'] === 'damage' ? 'Penggantian' : 'Sewa' ?> · <?= e($methodLabels[$payment['method']] ?? $payment['method']) ?> · <?= rupiah($payment['amount']) ?>
+                            <span class="badge text-bg-warning ms-1">Menunggu</span>
+                            <div class="text-muted">Diunggah: <?= e(tanggal($payment['created_at'], false, true)) ?></div>
+                        <?php elseif ($payment['status'] === 'failed'): ?>
+                            <i class="bi bi-x-circle-fill text-danger" aria-hidden="true"></i>
+                            <?= $payment['purpose'] === 'damage' ? 'Penggantian' : 'Sewa' ?> · <?= e($methodLabels[$payment['method']] ?? $payment['method']) ?> · <?= rupiah($payment['amount']) ?>
+                            <span class="badge text-bg-danger ms-1">Ditolak</span>
+                            <div class="text-muted">Diunggah: <?= e(tanggal($payment['created_at'], false, true)) ?></div>
+                            <?php if (!empty($payment['note'])): ?><div class="text-danger small">Alasan: <?= e($payment['note']) ?></div><?php endif ?>
+                        <?php endif ?>
+                        <?php if (!empty($payment['proof_image'])): ?>
+                            <div class="mt-1">
+                                <a href="<?= url($base . '/bukti/' . $payment['id']) ?>" target="_blank" rel="noopener" class="small text-decoration-none">
+                                    <i class="bi bi-receipt me-1" aria-hidden="true"></i> Lihat bukti
+                                </a>
+                            </div>
+                        <?php endif ?>
                     </div>
                 <?php endforeach ?>
             </div>

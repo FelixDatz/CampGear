@@ -108,22 +108,37 @@ check "email benar (huruf besar) diterima" "/booking/$CODE_A" "$(lookup "$TMP/o.
 check "setelah cek, detail bisa dibuka" 200 "$(status -b "$TMP/o.jar" "$BASE/booking/$CODE_A")"
 check "nomor HP format +62 diterima" "/booking/$CODE_A" "$(lookup "$TMP/o2.jar" "$(echo "$CODE_A" | tr 'A-Z' 'a-z')" "+62 812-3333-4444")"
 
-echo "== Pembayaran simulasi"
+echo "== Pembayaran transfer & verifikasi staf"
 curl -s -b "$TMP/o3.jar" -c "$TMP/o3.jar" "$BASE/cek-booking" -o "$TMP/x.html"; t="$(token "$TMP/x.html")"
 check "bayar tanpa hak akses -> 403" 403 "$(status -b "$TMP/o3.jar" --data-urlencode "_token=$t" --data "method=transfer" "$BASE/booking/$CODE_A/bayar")"
 curl -s -b "$TMP/guest.jar" "$BASE/booking/$CODE_A" -o "$TMP/s.html"; t="$(token "$TMP/s.html")"
 check "bayar tanpa CSRF -> 419" 419 "$(status -b "$TMP/guest.jar" --data "method=transfer" "$BASE/booking/$CODE_A/bayar")"
 check "metode tidak valid ditolak" 302 "$(status -b "$TMP/guest.jar" --data-urlencode "_token=$t" --data "method=bitcoin" "$BASE/booking/$CODE_A/bayar")"
 check "status masih pending" pending_payment "$($MYSQL "SELECT status FROM bookings WHERE code='$CODE_A'")"
-check "bayar transfer" 302 "$(status -b "$TMP/guest.jar" --data-urlencode "_token=$t" --data "method=transfer" "$BASE/booking/$CODE_A/bayar")"
+check "bayar tanpa bukti ditolak" 302 "$(status -b "$TMP/guest.jar" --data-urlencode "_token=$t" --data "method=transfer" "$BASE/booking/$CODE_A/bayar")"
+check "status tetap pending" pending_payment "$($MYSQL "SELECT status FROM bookings WHERE code='$CODE_A'")"
+
+# Unggah bukti pembayaran transfer via multipart
+echo 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==' | base64 -d > "$TMP/proof.png"
+curl -s -b "$TMP/guest.jar" "$BASE/booking/$CODE_A" -o "$TMP/s_up.html"; t="$(token "$TMP/s_up.html")"
+check "unggah bukti transfer" 302 "$(status -b "$TMP/guest.jar" -c "$TMP/guest.jar" --form-string "_token=$t" --form-string "method=transfer" -F "proof_image=@$(winpath "$TMP/proof.png");type=image/png" "$BASE/booking/$CODE_A/bayar")"
+check "status booking masih pending_payment menunggu staf" pending_payment "$($MYSQL "SELECT status FROM bookings WHERE code='$CODE_A'")"
+check "payment pending tercatat" "pending transfer 495000.00" \
+  "$($MYSQL "SELECT p.status, p.method, p.amount FROM payments p JOIN bookings b ON b.id=p.booking_id WHERE b.code='$CODE_A' AND p.purpose='rental'" | tr '\t' ' ')"
+
+PAYMENT_ID="$($MYSQL "SELECT p.id FROM payments p JOIN bookings b ON b.id=p.booking_id WHERE b.code='$CODE_A' AND p.purpose='rental' AND p.status='pending'")"
+
+# Verifikasi & persetujuan oleh staf
+login "$TMP/staff.jar" staff@demo.test 'Staff#2026'
+t_staff="$(tok "$TMP/staff.jar" "/staff/booking/$CODE_A")"
+check "staf setujui bukti pembayaran" 302 "$(status -b "$TMP/staff.jar" -c "$TMP/staff.jar" --data-urlencode "_token=$t_staff" "$BASE/staff/booking/$CODE_A/pembayaran/$PAYMENT_ID/setujui")"
 check "status confirmed + payment paid sebesar total" "confirmed paid 495000.00" \
-  "$($MYSQL "SELECT b.status, p.status, p.amount FROM bookings b JOIN payments p ON p.booking_id=b.id WHERE b.code='$CODE_A'" | tr '\t' ' ')"
+  "$($MYSQL "SELECT b.status, p.status, p.amount FROM bookings b JOIN payments p ON p.booking_id=b.id WHERE b.code='$CODE_A' AND p.id=$PAYMENT_ID" | tr '\t' ' ')"
 curl -s -b "$TMP/guest.jar" "$BASE/booking/$CODE_A" -o "$TMP/s2.html"
 contains "kartu pengambilan tampil" "Kartu Pengambilan Alat" "$TMP/s2.html"
 contains "QR dengan kode booking" "data-qr=\"$CODE_A\"" "$TMP/s2.html"
 contains "pustaka QR dimuat" "qrcode.min.js" "$TMP/s2.html"
 contains "checklist serah terima" "Checklist serah terima" "$TMP/s2.html"
-contains "flash sukses pembayaran" "Pembayaran simulasi berhasil" "$TMP/s2.html"
 contains "jejak status: sekarang Terkonfirmasi" 'aria-current="step"><span class="st-dot" aria-hidden="true"></span><span class="st-label">Terkonfirmasi' "$TMP/s2.html"
 lacks "tiket tidak lagi terkunci" 'ticket is-locked' "$TMP/s2.html"
 t="$(token "$TMP/s2.html")"

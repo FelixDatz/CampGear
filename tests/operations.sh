@@ -59,7 +59,7 @@ contains "penyewa melihat catatan refund" "Belum ada pembayaran" "$TMP/b.html"
 
 echo "== Pembatalan booking terbayar -> refund perlu diproses"
 C2="$(book "$TMP/g2.jar" "$(d +7)" "$(d +8)" --data "items[6]=2")"
-TOKPATH="/booking/$C2" post "$TMP/g2.jar" "/booking/$C2/bayar" --data "method=transfer" >/dev/null
+TOKPATH="/staff/booking/$C2" post "$TMP/staff.jar" "/staff/booking/$C2/bayar" >/dev/null
 TOKPATH="/booking/$C2" post "$TMP/g2.jar" "/booking/$C2/batal" --data-urlencode "reason=Anggota rombongan sakit mendadak" >/dev/null
 REQ3="$($MYSQL "SELECT cr.id FROM cancellation_requests cr JOIN bookings b ON b.id=cr.booking_id WHERE b.code='$C2'")"
 TOKPATH="/staff/pembatalan/$REQ3" post "$TMP/staff.jar" "/staff/pembatalan/$REQ3/setujui" --data "refund_amount=60000" --data-urlencode "refund_note=Transfer balik (simulasi)" >/dev/null

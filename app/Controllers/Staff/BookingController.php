@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Controllers\Staff;
 
+use App\Controllers\BookingController as CustomerBookingController;
 use App\Core\Auth;
 use App\Core\HttpException;
 use App\Core\Paginator;
@@ -15,6 +16,7 @@ use App\Models\Booking;
 use App\Models\CancellationRequest;
 use App\Models\DamageReport;
 use App\Models\Handover;
+use App\Models\Payment;
 
 /**
  * Operasional booking oleh Staff/Admin:
@@ -51,15 +53,17 @@ final class BookingController
         $today = date('Y-m-d');
 
         view('staff/bookings/show', [
-            'title'         => 'Booking ' . $booking['code'],
-            'booking'       => $booking,
-            'status'        => BookingStatus::from($booking['status']),
-            'items'         => Booking::items($id),
-            'payments'      => Booking::payments($id),
-            'cancellations' => CancellationRequest::forBooking($id),
-            'damages'       => DamageReport::forBooking($id),
-            'handovers'     => Handover::forBooking($id),
-            'canPickup'     => $booking['status'] === 'confirmed' && $today >= $booking['start_date'] && $today <= $booking['end_date'],
+            'title'          => 'Booking ' . $booking['code'],
+            'booking'        => $booking,
+            'status'         => BookingStatus::from($booking['status']),
+            'items'          => Booking::items($id),
+            'payments'       => Booking::payments($id),
+            'rentalPayments' => Payment::rentalHistory($id),
+            'pendingPayment' => Payment::pendingRental($id),
+            'cancellations'  => CancellationRequest::forBooking($id),
+            'damages'        => DamageReport::forBooking($id),
+            'handovers'      => Handover::forBooking($id),
+            'canPickup'      => $booking['status'] === 'confirmed' && $today >= $booking['start_date'] && $today <= $booking['end_date'],
         ], 'layouts/panel');
     }
 
@@ -73,6 +77,76 @@ final class BookingController
                 "Menerima pembayaran tunai {$booking['code']} sebesar " . rupiah($booking['grand_total']), ['reference' => $reference]);
             return 'Pembayaran tunai dicatat. Booking terkonfirmasi.';
         });
+    }
+
+    /** POST /staff/booking/{code}/pembayaran/{payment_id}/setujui — verifikasi & setujui bukti. */
+    public function approvePayment(string $code, string $payment_id): void
+    {
+        $booking = self::findOrFail($code);
+        $paymentId = (int) $payment_id;
+
+        $this->attempt($booking, function () use ($booking, $paymentId): string {
+            $payment = Payment::findById($paymentId);
+            if ($payment === null || (int) $payment['booking_id'] !== (int) $booking['id']) {
+                throw new BusinessRuleException('Data pembayaran tidak ditemukan untuk booking ini.');
+            }
+
+            Payment::approve($paymentId, (int) Auth::id());
+
+            AuditLog::record(
+                'booking.payment_approved',
+                'booking',
+                (int) $booking['id'],
+                "Menyetujui pembayaran sewa {$booking['code']} (ID payment: {$paymentId})",
+                ['payment_id' => $paymentId]
+            );
+
+            return 'Pembayaran disetujui. Booking terkonfirmasi.';
+        });
+    }
+
+    /** POST /staff/booking/{code}/pembayaran/{payment_id}/tolak — tolak bukti pembayaran. */
+    public function rejectPayment(string $code, string $payment_id): void
+    {
+        $booking = self::findOrFail($code);
+        $paymentId = (int) $payment_id;
+
+        $note = trim((string) ($_POST['note'] ?? $_POST['reason'] ?? ''));
+        if ($note === '') {
+            flash('error', 'Alasan penolakan wajib diisi.');
+            redirect('/staff/booking/' . $booking['code']);
+        }
+
+        $this->attempt($booking, function () use ($booking, $paymentId, $note): string {
+            $payment = Payment::findById($paymentId);
+            if ($payment === null || (int) $payment['booking_id'] !== (int) $booking['id']) {
+                throw new BusinessRuleException('Data pembayaran tidak ditemukan untuk booking ini.');
+            }
+
+            Payment::reject($paymentId, (int) Auth::id(), $note);
+
+            AuditLog::record(
+                'booking.payment_rejected',
+                'booking',
+                (int) $booking['id'],
+                "Menolak pembayaran sewa {$booking['code']} (ID payment: {$paymentId}): {$note}",
+                ['payment_id' => $paymentId, 'note' => $note]
+            );
+
+            return 'Bukti pembayaran ditolak.';
+        });
+    }
+
+    /** GET /staff/booking/{code}/bukti/{payment_id} — pratinjau bukti bayar privat oleh staf. */
+    public function proof(string $code, string $payment_id): void
+    {
+        $booking = self::findOrFail($code);
+        $payment = Payment::findById((int) $payment_id);
+        if ($payment === null || (int) $payment['booking_id'] !== (int) $booking['id']) {
+            throw new HttpException(404, 'Bukti pembayaran tidak ditemukan.');
+        }
+
+        CustomerBookingController::streamProofFile($payment['proof_image']);
     }
 
     /** POST /staff/booking/{code}/ambil — checklist pengambilan + deposit. */

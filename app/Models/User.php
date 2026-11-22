@@ -33,12 +33,14 @@ final class User
         );
     }
 
-    public static function updatePassword(int $id, string $plainPassword): void
+    public static function updatePassword(int $id, string $plainPassword): string
     {
+        $hash = password_hash($plainPassword, PASSWORD_DEFAULT);
         Database::execute(
             'UPDATE users SET password_hash = ? WHERE id = ?',
-            [password_hash($plainPassword, PASSWORD_DEFAULT), $id],
+            [$hash, $id],
         );
+        return $hash;
     }
 
     public static function touchLastLogin(int $id): void

@@ -123,8 +123,11 @@ final class UserController
         if ($validator->fails()) {
             back_with_errors($backTo . '#password', $validator->errors(), []);
         }
-        User::updatePassword((int) $account['id'], $validator->validated()['password']);
+        $newHash = User::updatePassword((int) $account['id'], $validator->validated()['password']);
         RememberToken::deleteForUser((int) $account['id']);
+        if ((int) $account['id'] === Auth::id()) {
+            Auth::refreshPasswordSignature($newHash);
+        }
         AuditLog::record('user.password_reset', 'user', (int) $account['id'], "Mengatur ulang password {$account['email']}");
         flash('success', 'Password akun diatur ulang.');
         redirect($backTo);

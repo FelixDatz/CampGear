@@ -37,7 +37,7 @@ final class Auth
             return null;
         }
         if (password_needs_rehash($user['password_hash'], PASSWORD_DEFAULT)) {
-            User::updatePassword((int) $user['id'], $password);
+            $user['password_hash'] = User::updatePassword((int) $user['id'], $password);
         }
         return $user;
     }
@@ -47,6 +47,7 @@ final class Auth
         Session::regenerate();
         Csrf::rotate();
         $_SESSION['user_id'] = (int) $user['id'];
+        $_SESSION['password_sig'] = self::passwordSignature((string) ($user['password_hash'] ?? ''));
 
         self::$user = $user;
         self::$resolved = true;
@@ -78,14 +79,33 @@ final class Auth
             $id = $_SESSION['user_id'] ?? null;
             if (is_int($id)) {
                 $user = User::find($id);
-                if ($user !== null && (int) $user['is_active'] === 1) {
+                $expectedSig = self::passwordSignature((string) ($user['password_hash'] ?? ''));
+                $storedSig = $_SESSION['password_sig'] ?? null;
+
+                if ($user !== null && (int) $user['is_active'] === 1
+                    && is_string($storedSig) && hash_equals($expectedSig, $storedSig)) {
                     self::$user = $user;
                 } else {
-                    unset($_SESSION['user_id']);
+                    unset($_SESSION['user_id'], $_SESSION['password_sig']);
+                    self::forgetRememberToken();
+                    self::$user = null;
                 }
             }
         }
         return self::$user;
+    }
+
+    public static function passwordSignature(string $passwordHash): string
+    {
+        return hash('sha256', $passwordHash);
+    }
+
+    public static function refreshPasswordSignature(string $newPasswordHash): void
+    {
+        $_SESSION['password_sig'] = self::passwordSignature($newPasswordHash);
+        if (self::$user !== null) {
+            self::$user['password_hash'] = $newPasswordHash;
+        }
     }
 
     public static function check(): bool

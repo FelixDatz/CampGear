@@ -47,6 +47,7 @@ $router->get('/sewa', [BookingController::class, 'create']);
 $router->post('/sewa', [BookingController::class, 'store']);
 $router->get('/booking/{code}', [BookingController::class, 'show']);
 $router->post('/booking/{code}/bayar', [BookingController::class, 'pay']);
+$router->get('/booking/{code}/bukti/{payment_id}', [BookingController::class, 'proof']);
 $router->post('/booking/{code}/batal', [BookingController::class, 'cancel']);
 $router->get('/cek-booking', [BookingController::class, 'lookupForm']);
 $router->post('/cek-booking', [BookingController::class, 'lookup']);
@@ -75,7 +76,10 @@ $router->get('/staff', [StaffDashboard::class, 'index'], $staff);
 
 $router->get('/staff/booking', [StaffBooking::class, 'index'], $staff);
 $router->get('/staff/booking/{code}', [StaffBooking::class, 'show'], $staff);
+$router->get('/staff/booking/{code}/bukti/{payment_id}', [StaffBooking::class, 'proof'], $staff);
 $router->post('/staff/booking/{code}/bayar', [StaffBooking::class, 'confirmPayment'], $staff);
+$router->post('/staff/booking/{code}/pembayaran/{payment_id}/setujui', [StaffBooking::class, 'approvePayment'], $staff);
+$router->post('/staff/booking/{code}/pembayaran/{payment_id}/tolak', [StaffBooking::class, 'rejectPayment'], $staff);
 $router->post('/staff/booking/{code}/ambil', [StaffBooking::class, 'pickup'], $staff);
 $router->post('/staff/booking/{code}/kembali', [StaffBooking::class, 'receiveReturn'], $staff);
 $router->post('/staff/booking/{code}/deposit', [StaffBooking::class, 'deposit'], $staff);

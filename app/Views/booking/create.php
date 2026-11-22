@@ -37,6 +37,19 @@ $hours = (int) config('rental.payment_window_hours');
 <div class="container wizard-page">
     <form id="booking-form" class="wizard" method="post" action="<?= url('/sewa') ?>" novalidate data-wizard>
         <?= csrf_field() ?>
+        <?php if (!empty($formToken)): ?>
+            <input type="hidden" name="_form_token" value="<?= e($formToken) ?>">
+        <?php endif ?>
+        <div style="display:none;" aria-hidden="true">
+            <label for="website_url">Jangan isi bidang ini</label>
+            <input type="text" id="website_url" name="website_url" tabindex="-1" autocomplete="off">
+        </div>
+        <?php if ($generalError = error('general')): ?>
+            <div class="alert alert-danger d-flex align-items-center mb-3" role="alert">
+                <i class="bi bi-exclamation-triangle-fill me-2" aria-hidden="true"></i>
+                <div><?= e($generalError) ?></div>
+            </div>
+        <?php endif ?>
         <header class="wiz-head">
             <h1 class="h2 mb-1">Buat Booking</h1>
             <p class="text-muted mb-0">Stok setiap alat dicek untuk setiap hari dalam rentang sewamu.</p>

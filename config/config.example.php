@@ -7,6 +7,10 @@
 return [
     'app' => [
         'name'     => 'CampGear',
+        // Kunci rahasia aplikasi untuk hashing HMAC rate limiting dan token.
+        // WAJIB: Ganti dengan kunci acak unik untuk setiap instalasi. JANGAN biarkan kosong di production.
+        // Generate: php -r "echo 'base64:' . base64_encode(random_bytes(32)) . PHP_EOL;"
+        'key'      => '',
         // true hanya untuk pengembangan lokal: menampilkan detail error.
         'debug'    => false,
         // Kosongkan bila aplikasi berada di root domain.
@@ -40,8 +44,9 @@ return [
     // Refund, deposit, dan biaya penggantian TIDAK dihitung otomatis;
     // nominalnya dicatat staf secara administratif.
     'rental' => [
-        'payment_window_hours' => 24, // batas waktu bayar sebelum booking kedaluwarsa
-        'max_rental_days'      => 14, // durasi sewa maksimum per booking
-        'max_advance_days'     => 90, // booking paling jauh H+90
+        'payment_window_hours'        => 3,  // batas waktu kirim bukti bayar sebelum booking kedaluwarsa
+        'max_rental_days'             => 14, // durasi sewa maksimum per booking
+        'max_advance_days'            => 90, // booking paling jauh H+90
+        'booking_rate_limit_per_hour' => 60, // batas awal percobaan booking per IP per jam
     ],
 ];

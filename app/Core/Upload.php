@@ -26,6 +26,7 @@ final class Upload
     ];
 
     private const FOLDERS = ['equipment', 'packages', 'articles'];
+    private const PRIVATE_FOLDERS = ['payments'];
 
     /**
      * Simpan gambar dari field form. Mengembalikan path relatif (mis. 'equipment/ab12...jpg'),
@@ -39,6 +40,64 @@ final class Upload
             throw new \LogicException("Folder upload tidak dikenal: {$folder}");
         }
 
+        $validated = self::validateImageUpload($field);
+        if ($validated === null) {
+            return null;
+        }
+
+        $directory = BASE_PATH . '/public/uploads/' . $folder;
+        if (!is_dir($directory) && !mkdir($directory, 0755, true) && !is_dir($directory)) {
+            throw new \RuntimeException('Folder upload tidak dapat dibuat.');
+        }
+
+        $name = bin2hex(random_bytes(16)) . '.' . $validated['extension'];
+        if (!move_uploaded_file($validated['tmp_name'], $directory . '/' . $name)) {
+            throw new \RuntimeException('Gagal menyimpan gambar.');
+        }
+        @chmod($directory . '/' . $name, 0644);
+
+        return $folder . '/' . $name;
+    }
+
+    /**
+     * Simpan gambar secara privat di storage/<folder>/ (di luar root publik web).
+     * Mengembalikan path relatif (mis. 'payments/ab12...jpg'), atau null bila tidak ada file.
+     *
+     * @throws BusinessRuleException bila file tidak valid
+     */
+    public static function privateImage(string $field, string $folder): ?string
+    {
+        if (!in_array($folder, self::PRIVATE_FOLDERS, true)) {
+            throw new \LogicException("Folder upload privat tidak dikenal: {$folder}");
+        }
+
+        $validated = self::validateImageUpload($field);
+        if ($validated === null) {
+            return null;
+        }
+
+        $directory = BASE_PATH . '/storage/' . $folder;
+        if (!is_dir($directory) && !mkdir($directory, 0755, true) && !is_dir($directory)) {
+            throw new \RuntimeException('Folder upload privat tidak dapat dibuat.');
+        }
+
+        $name = bin2hex(random_bytes(16)) . '.' . $validated['extension'];
+        if (!move_uploaded_file($validated['tmp_name'], $directory . '/' . $name)) {
+            throw new \RuntimeException('Gagal menyimpan gambar bukti.');
+        }
+        @chmod($directory . '/' . $name, 0644);
+
+        return $folder . '/' . $name;
+    }
+
+    /**
+     * Memvalidasi file upload gambar (ukuran, tipe MIME dari isi file, dimensi).
+     *
+     * @return array{tmp_name: string, extension: string}|null
+     * @throws BusinessRuleException bila file tidak valid
+     */
+    private static function validateImageUpload(string $field): ?array
+    {
         $file = $_FILES[$field] ?? null;
         if (!is_array($file) || !isset($file['error']) || is_array($file['error'])) {
             return null;
@@ -67,18 +126,7 @@ final class Upload
             throw new BusinessRuleException('File harus berupa gambar JPG, PNG, atau WEBP.');
         }
 
-        $directory = BASE_PATH . '/public/uploads/' . $folder;
-        if (!is_dir($directory) && !mkdir($directory, 0755, true) && !is_dir($directory)) {
-            throw new \RuntimeException('Folder upload tidak dapat dibuat.');
-        }
-
-        $name = bin2hex(random_bytes(16)) . '.' . $extension;
-        if (!move_uploaded_file($file['tmp_name'], $directory . '/' . $name)) {
-            throw new \RuntimeException('Gagal menyimpan gambar.');
-        }
-        @chmod($directory . '/' . $name, 0644);
-
-        return $folder . '/' . $name;
+        return ['tmp_name' => $file['tmp_name'], 'extension' => $extension];
     }
 
     /** Hapus file unggahan lama. Hanya path dengan format buatan Upload::image() yang dihapus. */
@@ -91,5 +139,30 @@ final class Upload
         if (is_file($file)) {
             @unlink($file);
         }
+    }
+
+    /** Hapus file privat lama. Hanya path dengan format buatan Upload::privateImage() yang dihapus. */
+    public static function deletePrivate(?string $path): void
+    {
+        if ($path === null || !preg_match('#^payments/[a-f0-9]{32}\.(jpg|png|webp)$#', $path)) {
+            return;
+        }
+        $file = BASE_PATH . '/storage/' . $path;
+        if (is_file($file)) {
+            @unlink($file);
+        }
+    }
+
+    /**
+     * Mengembalikan path absolut file privat yang aman untuk dibaca/distream,
+     * atau null bila path tidak valid atau file tidak ada di disk privat.
+     */
+    public static function privatePath(?string $path): ?string
+    {
+        if ($path === null || !preg_match('#^payments/[a-f0-9]{32}\.(jpg|png|webp)$#', $path)) {
+            return null;
+        }
+        $file = BASE_PATH . '/storage/' . $path;
+        return is_file($file) ? $file : null;
     }
 }

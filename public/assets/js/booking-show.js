@@ -46,9 +46,38 @@
                 clearInterval(timer);
                 const label = document.querySelector('[data-countdown-label]');
                 if (label) label.textContent = 'waktu bayar habis, muat ulang halaman';
+                const form = document.querySelector('form[action*="/bayar"]');
+                if (form) {
+                    form.querySelectorAll('input, button').forEach((el) => {
+                        el.disabled = true;
+                    });
+                }
             }
         };
         const timer = setInterval(tick, 1000);
         tick();
+    }
+
+    // Validasi ukuran file bukti upload (maksimal 2 MB) dan pencegahan double-submit
+    const paymentForm = document.querySelector('form[action*="/bayar"]');
+    if (paymentForm) {
+        const fileInput = paymentForm.querySelector('input[type="file"]');
+        if (fileInput) {
+            fileInput.addEventListener('change', () => {
+                const file = fileInput.files && fileInput.files[0];
+                if (file && file.size > 2 * 1024 * 1024) {
+                    alert('Ukuran file bukti pembayaran melebihi batas 2 MB. Silakan pilih file yang lebih kecil.');
+                    fileInput.value = '';
+                }
+            });
+        }
+
+        paymentForm.addEventListener('submit', () => {
+            const submitBtn = paymentForm.querySelector('button[type="submit"]');
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> Mengunggah...';
+            }
+        });
     }
 })();

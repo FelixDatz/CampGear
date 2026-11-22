@@ -80,10 +80,11 @@ final class AccountController
             back_with_errors('/akun/profil#password', $validator->errors(), []);
         }
 
-        User::updatePassword((int) $user['id'], $validator->validated()['password']);
+        $newHash = User::updatePassword((int) $user['id'], $validator->validated()['password']);
         // Keluarkan sesi "Ingat saya" di perangkat lain dan ganti ID sesi ini.
         RememberToken::deleteForUser((int) $user['id']);
         Session::regenerate();
+        Auth::refreshPasswordSignature($newHash);
         if (Auth::isStaff()) {
             AuditLog::record('profile.password', 'user', (int) $user['id'], 'Mengganti password sendiri');
         }

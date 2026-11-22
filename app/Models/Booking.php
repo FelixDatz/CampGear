@@ -331,12 +331,25 @@ final class Booking
      * Ubah booking yang melewati batas bayar menjadi 'expired'.
      * Hosting gratis tidak menyediakan cron, jadi fungsi ini dipanggil
      * setiap kali data booking/stok akan dibaca (lazy expiration).
+     *
+     * Aturan expiry:
+     * - Booking TIDAK diexpire jika memiliki payment rental berstatus 'pending'
+     *   (bukti sudah dikirim sebelum deadline → stok ditahan sampai staf verifikasi).
+     * - Booking DIEXPIRE jika deadline lewat DAN tidak ada payment rental pending.
+     *   Ini mencakup: belum upload sama sekali, atau bukti terakhir sudah ditolak ('failed').
      */
     public static function expireOverdue(): int
     {
         return Database::execute(
             "UPDATE bookings SET status = 'expired'
-             WHERE status = 'pending_payment' AND payment_due_at <= NOW()",
+             WHERE status = 'pending_payment'
+               AND payment_due_at <= NOW()
+               AND NOT EXISTS (
+                   SELECT 1 FROM payments
+                   WHERE payments.booking_id = bookings.id
+                     AND payments.purpose = 'rental'
+                     AND payments.status = 'pending'
+               )",
         );
     }
 

@@ -15,6 +15,7 @@ SET FOREIGN_KEY_CHECKS = 0;
 
 DROP TABLE IF EXISTS
     audit_logs,
+    rate_limits,
     login_attempts,
     remember_tokens,
     damage_reports,
@@ -76,6 +77,15 @@ CREATE TABLE login_attempts (
     attempted_at  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
     KEY idx_login_attempts_ip (ip_address, attempted_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Pembatas frekuensi permintaan (rate limiting) berbasis kunci/IP.
+CREATE TABLE rate_limits (
+    rate_key      VARCHAR(80)  NOT NULL,
+    hits          INT UNSIGNED NOT NULL DEFAULT 1,
+    reset_at      DATETIME     NOT NULL,
+    PRIMARY KEY (rate_key),
+    KEY idx_rate_limits_reset (reset_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ---------------------------------------------------------------------
@@ -216,7 +226,9 @@ CREATE TABLE payments (
     amount      DECIMAL(12,2) NOT NULL,
     status      ENUM('pending','paid','failed') NOT NULL DEFAULT 'pending',
     reference   VARCHAR(40)   NULL,
-    handled_by  INT UNSIGNED  NULL COMMENT 'staff yang menerima pembayaran tunai',
+    proof_image VARCHAR(255)  NULL COMMENT 'path bukti pembayaran privat di storage/payments/',
+    note        VARCHAR(255)  NULL COMMENT 'catatan staf saat verifikasi / alasan penolakan',
+    handled_by  INT UNSIGNED  NULL COMMENT 'staff yang menerima pembayaran tunai atau verifikasi',
     paid_at     DATETIME      NULL,
     created_at  DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
