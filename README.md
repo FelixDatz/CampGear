@@ -8,7 +8,7 @@ Proyek UAS Pemrograman Web — Kelas A PTIK 2024.
 | Nama | Felix Trinidat |
 | NIM | K3524075 |
 | Kelas / Kelompok | A PTIK 2024 / 1 |
-| URL live | _diisi setelah deploy ke InfinityFree_ |
+| URL live | https://campgear.freehosting.dev/ |
 
 ## Fitur
 

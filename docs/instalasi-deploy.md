@@ -117,3 +117,7 @@ Bila database dibuat sebelum artikel awal tersedia, impor **hanya** `database/se
 | User | user@demo.test | User#2026 |
 
 Tabel akun demo tampil di halaman login selama `'show_demo_accounts' => true`. Pastikan opsi ini dimatikan (`false`) di lingkungan produksi nyata kecuali jika sengaja diaktifkan untuk keperluan penilaian akademik dan risiko tereksposnya akun demo telah dipahami.
+
+## D. Web Live
+
+| https://campgear.freehosting.dev/ |
