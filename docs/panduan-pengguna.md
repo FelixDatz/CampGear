@@ -24,8 +24,16 @@
    - **Periksa:** cek ringkasan. Tombol **Ubah** membawa kembali ke langkah terkait. Tekan **Buat Booking** untuk mengirim.
 4. Catat **kode booking** pada tiket yang muncul. Ransel dikosongkan setelah booking dikirim.
 
-### Membayar (simulasi)
-Di halaman booking, pilih **Transfer bank** atau **E-wallet**, lalu tekan **Bayar Sekarang**. Batas bayar 24 jam. Setelah itu booking kedaluwarsa dan stok dilepas. Pembayaran tunai juga bisa dilakukan di lokasi dan dicatat oleh staf.
+### Pembayaran & unggah bukti
+1. Di halaman booking (tiket ekspedisi), periksa batas waktu pembayaran (**3 jam** sejak booking dibuat). Hitung mundur aktif ditampilkan pada tiket. Tanpa bukti pembayaran yang diunggah sebelum deadline 3 jam tersebut, booking akan kedaluwarsa dan stoknya dilepaskan ketika sistem menjalankan pemeriksaan booking atau stok berikutnya.
+2. Pilih metode pembayaran **Transfer bank** atau **E-wallet**. Informasi nomor rekening atau barcode QR resmi CampGear akan ditampilkan.
+3. Unggah foto atau tangkapan layar bukti transfer (format JPG, PNG, atau WEBP, ukuran maksimal 2 MB) lalu tekan **Kirim Bukti Pembayaran**. Berkas disimpan secara privat dan terlindungi.
+4. **Retensi stok saat menunggu verifikasi:** jika bukti diunggah tepat waktu (sebelum deadline), status pembayaran berubah menjadi **Menunggu Verifikasi**. Penyewa dapat melihat pratinjau bukti yang dikirim melalui tautan privat. Stok alat tetap aman ditahan oleh sistem selama menunggu verifikasi staf, termasuk setelah deadline terlewati.
+5. **Jika bukti disetujui staf:** status berubah menjadi **Terkonfirmasi**, QR kode booking muncul, dan kartu pengambilan alat siap digunakan.
+6. **Jika bukti ditolak staf:** kotak peringatan akan menampilkan alasan penolakan dari staf.
+   - **Bila ditolak sebelum deadline:** penyewa diperbolehkan mengunggah ulang bukti pembayaran pengganti yang valid sampai deadline asli booking berakhir.
+   - **Bila ditolak setelah deadline:** booking akan kedaluwarsa dan stoknya dilepaskan ketika sistem menjalankan pemeriksaan booking atau stok berikutnya (*lazy expiration*).
+7. **Pembayaran tunai:** penyewa juga dapat datang langsung ke basecamp untuk membayar tunai kepada staf sebelum batas waktu habis.
 
 ### Cek status & tiket ekspedisi
 - Ikon tiket di navbar (di HP: **Booking**) → masukkan kode booking dan email **atau** nomor HP. Halaman **Cek Booking** (`/cek-booking`) tetap tersedia, dan kode booking juga bisa diketik di pencarian Ctrl+K.
@@ -65,7 +73,10 @@ Login lalu buka **Panel Staff** (menu kiri; di HP lewat tombol ☰). Tombol bula
 | **Alat / Kategori / Paket / Artikel** | CRUD inventaris dan konten |
 
 ### Alur di halaman detail booking
-1. **Menunggu bayar:** tombol **Terima tunai** bila penyewa membayar di lokasi.
+1. **Menunggu bayar:**
+   - **Verifikasi bukti transfer/e-wallet:** jika penyewa telah mengunggah bukti, kartu *Verifikasi Bukti Pembayaran* menampilkan gambar bukti secara privat, nominal, metode, dan waktu unggah. Staf dapat menekan **Setujui Pembayaran** (booking langsung Terkonfirmasi) atau **Tolak Pembayaran** (wajib mengisi alasan penolakan melalui modal).
+   - **Riwayat pembayaran:** tabel riwayat menampilkan seluruh bukti yang pernah dikirim, statusnya (Lunas/Ditolak/Menunggu), staf pemroses, waktu verifikasi (`paid_at` untuk approval atau `rejected_at` dari audit log untuk rejection), alasan penolakan jika ada, dan tautan pratinjau bukti privat.
+   - **Terima tunai:** bila penyewa membayar langsung di lokasi, staf menekan tombol **Terima tunai**.
 2. **Terkonfirmasi** (pada rentang tanggal sewa): isi checklist pengambilan (jumlah baik/cacat), catat deposit bila ada, lalu **Serahkan alat**.
 3. **Sedang disewa:** isi checklist pengembalian (baik/rusak/hilang). Bila ada unit rusak/hilang, isi keterangan dan nominal penggantian (opsional). Centang **Kurangi stok total** untuk unit hilang. Tekan **Terima pengembalian**.
 4. **Sudah dikembalikan:** selesaikan semua laporan di menu **Kerusakan**, perbarui **Deposit** (mis. Dikembalikan), lalu **Selesaikan booking**.
@@ -87,16 +98,17 @@ Gunakan database dengan data demo (`setup.php --fresh --demo` atau impor `demo_d
 |---|---|---|---|
 | 1 | Pengunjung | Beranda → hover kartu di Pilih medan → Katalog → chip kategori → quick view → detail alat | Halaman informasi, responsif, interaksi tanpa pindah halaman |
 | 2 | Pengunjung | **Sewa alat ini** → pilih tanggal → tambah paket + alat → coba melebihi stok | Cek stok per tanggal via AJAX, penanda kekurangan stok |
-| 3 | Pengunjung | Buat booking → bayar simulasi | Tiket ekspedisi: hitung mundur saat menunggu bayar, lalu stempel Terkonfirmasi, QR, dan checklist |
-| 4 | Pengunjung | Jendela private → **Cek Booking** dengan kode + nomor HP | Cek status tanpa login |
-| 5 | User | Login `user@demo.test` → Akun Saya | Riwayat, status pembatalan (ada yang Menunggu), penggantian belum tuntas |
-| 6 | User | Buka booking yang akan datang → ajukan pembatalan | Pengajuan pembatalan dengan alasan |
-| 7 | Staff | Login `staff@demo.test` → Dashboard | Ringkasan hari ini, agenda, grafik, transaksi |
-| 8 | Staff | Pembatalan → setujui satu pengajuan (isi catatan refund) | Booking → Dibatalkan, stok dilepas |
-| 9 | Staff | Booking → *Ambil hari ini* → isi checklist + deposit → Serahkan alat | Serah terima pengambilan |
-| 10 | Staff | Booking → *Sedang disewa* → tandai 1 unit rusak → Terima pengembalian | Laporan kerusakan otomatis, booking tidak bisa diselesaikan |
-| 11 | Staff | Kerusakan → isi nominal → Tandai tuntas → kembali ke booking → Selesaikan | Kewajiban penggantian ditegakkan |
-| 12 | Staff | Alat → ubah tarif/stok/gambar; Artikel → tulis & terbitkan | CRUD + upload gambar |
-| 13 | Admin | Login `admin@demo.test` → Pengguna → tambah Staff baru | Manajemen akun |
-| 14 | Admin | Log Aktivitas → filter pelaku Staff | Catatan tindakan staf dari langkah 8–12 |
-| 15 | Semua | Buka `/statistik`, ganti Bulanan ↔ Mingguan, buka tabel data | Grafik penyewaan, pembatalan, pemakaian stok |
+| 3 | Pengunjung | Buat booking → unggah bukti transfer (file gambar) | Tiket ekspedisi: hitung mundur batas bayar 3 jam, formulir upload bukti, status menunggu verifikasi |
+| 4 | Staff | Login `staff@demo.test` → Booking → buka detail → periksa bukti → Setujui Pembayaran | Verifikasi bukti privat, status booking menjadi Terkonfirmasi, QR tiket terbit, kartu checklist siap |
+| 5 | Pengunjung | Jendela private → **Cek Booking** dengan kode + nomor HP | Cek status tanpa login, melihat tiket yang sudah Terkonfirmasi |
+| 6 | User | Login `user@demo.test` → Akun Saya | Riwayat, status pembatalan (ada yang Menunggu), penggantian belum tuntas |
+| 7 | User | Buka booking yang akan datang → ajukan pembatalan | Pengajuan pembatalan dengan alasan |
+| 8 | Staff | Login `staff@demo.test` → Dashboard | Ringkasan hari ini, agenda, grafik, transaksi |
+| 9 | Staff | Pembatalan → setujui satu pengajuan (isi catatan refund) | Booking → Dibatalkan, stok dilepas |
+| 10 | Staff | Booking → *Ambil hari ini* → isi checklist + deposit → Serahkan alat | Serah terima pengambilan |
+| 11 | Staff | Booking → *Sedang disewa* → tandai 1 unit rusak → Terima pengembalian | Laporan kerusakan otomatis, booking tidak bisa diselesaikan |
+| 12 | Staff | Kerusakan → isi nominal → Tandai tuntas → kembali ke booking → Selesaikan | Kewajiban penggantian ditegakkan |
+| 13 | Staff | Alat → ubah tarif/stok/gambar; Artikel → tulis & terbitkan | CRUD + upload gambar |
+| 14 | Admin | Login `admin@demo.test` → Pengguna → tambah Staff baru | Manajemen akun |
+| 15 | Admin | Log Aktivitas → filter pelaku Staff | Catatan tindakan staf dari langkah 8–13 |
+| 16 | Semua | Buka `/statistik`, ganti Bulanan ↔ Mingguan, buka tabel data | Grafik penyewaan, pembatalan, pemakaian stok |

@@ -1,12 +1,12 @@
 # Rancangan Database CampGear
 
-Database relasional MySQL/MariaDB (InnoDB, `utf8mb4_unicode_ci`) dengan 16 tabel. Integritas dijaga oleh foreign key, `UNIQUE`, dan `CHECK` constraint. Seluruh query aplikasi memakai prepared statement MySQLi.
+Database relasional MySQL/MariaDB (InnoDB, `utf8mb4_unicode_ci`) dengan 17 tabel. Integritas dijaga oleh foreign key, `UNIQUE`, dan `CHECK` constraint. Seluruh query aplikasi memakai prepared statement MySQLi.
 
 ## File SQL
 
 | File | Isi | Kapan dijalankan |
 |---|---|---|
-| `database/schema.sql` | Struktur 16 tabel. **Menghapus tabel lama** sebelum membuat ulang | Instalasi baru |
+| `database/schema.sql` | Struktur 17 tabel. **Menghapus tabel lama** sebelum membuat ulang | Instalasi baru |
 | `database/seed.sql` | 3 akun demo, 6 kategori, 15 alat, 3 paket | Instalasi baru, setelah schema |
 | `database/seed_articles.sql` | 4 artikel informatif; idempoten (`WHERE NOT EXISTS`) | Instalasi baru, atau ditambahkan ke database yang sudah ada |
 | `database/demo_data.sql` | ±195 booking contoh (6 bulan, semua status) dengan tanggal relatif `CURDATE()` | Opsional, hanya pada database baru (untuk grafik & demo) |
@@ -91,8 +91,19 @@ erDiagram
         int booking_id FK
         enum purpose "rental|damage"
         enum method "transfer|ewallet|cash"
-        enum status
+        decimal amount
+        enum status "pending|paid|failed"
+        varchar reference UK
+        varchar proof_image "path storage privat"
+        varchar note "alasan tolak/catatan"
         int handled_by FK
+        datetime paid_at
+        datetime created_at
+    }
+    rate_limits {
+        varchar rate_key PK "VARCHAR(80)"
+        int hits "INT UNSIGNED"
+        datetime reset_at
     }
     cancellation_requests {
         int id PK
@@ -159,12 +170,13 @@ erDiagram
 | `users` | Akun semua role | Email unik; password bcrypt (`password_hash`); `is_active` untuk menonaktifkan tanpa menghapus |
 | `remember_tokens` | Token "Ingat saya" | Hanya hash SHA-256 validator yang disimpan; token dirotasi setiap dipakai |
 | `login_attempts` | Pembatas brute-force login & cek booking | Dibersihkan otomatis setelah 1 hari |
+| `rate_limits` | Pembatas laju request (rate limiter) | `rate_key VARCHAR(80)` PK, `hits INT UNSIGNED`; operasi SQL atomik (`INSERT ... ON DUPLICATE KEY UPDATE`); membatasi pembuatan booking per IP per jam; expired dibersihkan otomatis |
 | `categories` | Kategori alat | Slug unik untuk URL; tidak bisa dihapus bila berisi alat |
 | `equipment` | Alat camping | `stock_total` = unit fisik dimiliki; ketersediaan per tanggal dihitung, tidak disimpan |
 | `packages`, `package_items` | Paket sewa | Diskon persentase 0–100 (`CHECK`) |
-| `bookings` | Transaksi sewa | `user_id` NULL untuk tamu; status ENUM; tanggal tiap tahap; deposit administratif |
+| `bookings` | Transaksi sewa | `user_id` NULL untuk tamu; status ENUM; `payment_due_at` batas bayar 3 jam; tanggal tiap tahap; deposit administratif |
 | `booking_items` | Rincian alat per booking | Tarif disalin (snapshot) agar perubahan tarif tidak mengubah transaksi lama |
-| `payments` | Pembayaran simulasi | `purpose` membedakan sewa dan penggantian; `handled_by` untuk tunai |
+| `payments` | Pembayaran sewa & penggantian kerusakan/kehilangan | `purpose` membedakan sewa dan penggantian; mendukung bukti transfer/e-wallet privat di `storage/payments/` dan tunai; kolom `note` mencatat alasan penolakan staf; `paid_at` mencatat waktu approval. *Catatan:* Waktu penolakan (`rejected_at`) bukan kolom pada tabel `payments`, melainkan direkonstruksi secara dinamis dari `audit_logs.created_at` pada aksi `booking.payment_rejected` yang dicocokkan via `meta.payment_id` |
 | `cancellation_requests` | Pengajuan pembatalan | Terpisah dari booking agar riwayat, peninjau, dan catatan refund tersimpan |
 | `handover_checklists`, `handover_items` | Checklist serah terima | Satu checklist per jenis per booking (`UNIQUE booking_id, type`) |
 | `damage_reports` | Kerusakan/kehilangan | Nominal opsional; `unsettled` memblokir penyelesaian booking |
@@ -173,9 +185,11 @@ erDiagram
 
 ## Mengapa Stok Tidak Disimpan sebagai "Sisa Stok"
 
-Ketersediaan selalu dihitung dari booking yang statusnya menahan stok (`pending_payment` yang belum lewat batas bayar, `confirmed`, `picked_up`). Dengan cara ini:
+Ketersediaan selalu dihitung dari booking yang statusnya menahan stok (`pending_payment` yang belum lewat batas bayar atau memiliki bukti pembayaran pending yang diunggah tepat waktu, `confirmed`, `picked_up`). Dengan cara ini:
 
 - pembatalan, kedaluwarsa, dan pengembalian otomatis melepas stok tanpa perlu memperbarui kolom lain;
+- pengunggahan bukti sebelum batas 3 jam menahan stok selama proses verifikasi staf, termasuk setelah deadline terlewati;
+- jika bukti ditolak sebelum deadline 3 jam, penyewa dapat mengunggah ulang hingga deadline asli berakhir; bila ditolak setelah deadline terlewati atau batas waktu habis tanpa bukti pending, booking otomatis kedaluwarsa dan stok dilepaskan;
 - tidak ada risiko angka "sisa stok" tidak sinkron dengan transaksi;
 - ketersediaan bisa dihitung untuk tanggal mana pun.
 

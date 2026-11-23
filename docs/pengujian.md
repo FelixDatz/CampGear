@@ -7,11 +7,11 @@ Tanggal pengujian: 18–19 November 2026. Lingkungan: Windows 11, PHP 8.2.12 (XA
 | Jenis pengujian | Alat | Jumlah pemeriksaan | Hasil |
 |---|---|---|---|
 | Uji dasar (smoke) | `tests/smoke.sh` | 85 | ✅ 85 lulus |
-| Booking & stok | `tests/booking.sh` | 84 | ✅ 84 lulus |
+| Booking & stok | `tests/booking.sh` | 88 | ✅ 88 lulus |
 | Operasional staff & pembatalan | `tests/operations.sh` | 73 | ✅ 73 lulus |
 | CRUD, upload, profil, admin, statistik | `tests/crud.sh` | 91 | ✅ 91 lulus |
 | Konkurensi (double booking) | `tests/race.sh` | 3 | ✅ 3 lulus |
-| **Total otomatis** | `tests/run-all.sh` | **336** | ✅ **336 lulus, 0 gagal** |
+| **Total otomatis** | `tests/run-all.sh` | **340** | ✅ **340 lulus, 0 gagal** |
 | Aturan `.htaccess` di Apache (deploy) | instance Apache 2.4 terpisah | 40 | ✅ 40 lulus |
 | Responsif 375 px | Edge headless, 31 halaman (diulang setelah redesain); beranda, /alat, dan 7 status halaman booking diulang 19 Nov | 31 | ✅ tanpa overflow horizontal |
 | Interaksi tampilan publik | Edge headless lewat DevTools Protocol | 26 skenario | ✅ lihat bagian 2 |
@@ -25,7 +25,7 @@ Pengujian dijalankan pada database terpisah (`campgear_test`) agar data di datab
 
 ## 2. Skenario Penting dan Hasilnya
 
-### Validasi stok per rentang tanggal
+### Validasi stok per rentang tanggal & alur pembayaran
 | Skenario | Hasil yang diharapkan | Hasil |
 |---|---|---|
 | Stok 5; booking A tgl 10–12 (3 unit). Cek tgl 12–13 | Tersedia 2 | ✅ 2 |
@@ -33,7 +33,14 @@ Pengujian dijalankan pada database terpisah (`campgear_test`) agar data di datab
 | Tambah booking B tgl 14–15 (3 unit). Cek tgl 10–15 | Tersedia 2 (puncak per hari, bukan 5−6) | ✅ 2 |
 | Minta 3 unit saat tersisa 2 | Ditolak dengan nama alat & jumlah tersedia | ✅ |
 | Paket Family ×2 + Tenda 6P ×2 (stok 3) | Ditolak: "diminta 4, tersedia 3" | ✅ |
-| Booking lewat batas bayar | Stok dilepas, status kedaluwarsa, tidak bisa dibayar | ✅ |
+| Bayar transfer tanpa unggah berkas bukti | Ditolak (302) dengan pesan error validasi | ✅ |
+| Unggah bukti transfer via multipart/form-data | Tersimpan privat di `storage/payments/`, payment `pending`, booking tetap `pending_payment` | ✅ |
+| Booking lewat batas 3 jam dengan bukti pending | Stok tetap ditahan, booking tidak di-expire | ✅ |
+| Verifikasi staf: setujui bukti pembayaran | Status booking `confirmed`, payment `paid`, tercatat nominal & staf | ✅ |
+| Verifikasi staf: tolak bukti tanpa alasan | Ditolak dengan pesan validasi alasan wajib | ✅ |
+| Verifikasi staf: tolak bukti sebelum deadline | Payment `failed`, alasan dicatat di note & audit log, booking tetap `pending_payment`, penyewa dapat re-upload bukti hingga deadline asli | ✅ |
+| Verifikasi staf: tolak bukti setelah deadline terlewati | Payment `failed`, booking otomatis `expired`, stok dilepas, form upload terkunci | ✅ |
+| Booking lewat batas 3 jam tanpa bukti pending | Stok dilepas, status kedaluwarsa, tidak bisa dibayar | ✅ |
 | Rentang > 14 hari, tanggal lampau, > H+90, selesai < mulai | API 422 dengan pesan jelas | ✅ |
 
 ### Konkurensi
@@ -59,7 +66,11 @@ Dua proses PHP paralel memesan 2 unit dari stok 3 pada 40 tanggal yang sama seca
 | File PHP berganti nama `.jpg` diunggah | Ditolak (dicek dari isi file) |
 | File `.php` / `.php.jpg` di folder uploads | Tidak dieksekusi (Apache & server bawaan) |
 | Akses `/app`, `/config`, `/database`, `/storage`, `/docs`, `/tests`, dotfile | 403/404 di Apache |
+| Akses bukti pembayaran privat tanpa otorisasi | 403 / 404 (hanya pemilik booking & staf berwenang) |
+| Servis berkas privat (`storage/payments/`) | Dilindungi header `X-Content-Type-Options: nosniff` dan `Cache-Control: private` |
 | Akun dinonaktifkan admin | Sesi aktif langsung berakhir |
+| Ganti password sendiri / reset password admin | Seluruh token "Ingat saya" akun dicabut; sesi aktif di perangkat lain tertolak pada request berikutnya saat evaluasi `password_sig` gagal cocok |
+| Rate limiting booking per IP | Dibatasi per jam menggunakan tabel `rate_limits` atomik |
 | Token "Ingat saya" lama dipakai ulang | Ditolak (token dirotasi) |
 | Cookie session | `HttpOnly`, `SameSite=Lax` |
 | Header | `X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy` |

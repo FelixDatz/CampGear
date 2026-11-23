@@ -18,17 +18,17 @@ Proyek UAS Pemrograman Web — Kelas A PTIK 2024.
 - **Navigasi ringkas:** menu Jelajahi (mega panel) dan Panduan, cek booking lewat popover, pencarian Ctrl+K, tab bar di HP.
 - **Trip & ransel:** tanggal sewa dipilih sekali lalu dipakai di seluruh situs (stok di katalog mengikuti tanggal); alat dan paket bisa dikumpulkan di ransel lalu dibawa ke form booking.
 - Booking alat satuan dan paket dengan **validasi stok per hari** dalam rentang tanggal (cek langsung via AJAX), dalam form empat langkah pada **mode fokus** (navbar diganti bar progres, total selalu terlihat).
-- Pembayaran simulasi, kode booking, batas bayar 24 jam dengan kedaluwarsa otomatis.
-- Cek status booking dengan kode + email/nomor HP. Halaman booking berupa **tiket ekspedisi**: stempel dan jejak status, hitung mundur batas bayar, QR setelah dibayar, dan checklist serah terima (bisa dicetak).
+- Pembayaran transfer/e-wallet dengan upload bukti bayar privat dan verifikasi staf (atau tunai oleh staf di lokasi), kode booking unik, batas bayar 3 jam dengan kedaluwarsa otomatis.
+- Cek status booking dengan kode + email/nomor HP. Halaman booking berupa **tiket ekspedisi**: stempel dan jejak status, hitung mundur batas bayar 3 jam, formulir upload bukti, penanganan penolakan & unggah ulang, QR setelah diverifikasi/dibayar, dan checklist serah terima (bisa dicetak).
 - Pengajuan pembatalan dengan alasan; status *menunggu / disetujui / ditolak* beserta tanggapan dan catatan refund.
 - **Grafik** penyewaan per periode, pembatalan, dan tingkat pemakaian stok (bulanan/mingguan, dengan tampilan tabel).
 - Registrasi, login, "Ingat saya", riwayat penyewaan, status pembatalan, profil, dan ganti password.
 
 **Staff**
 - Panel memakai sistem desain yang sama dengan situs publik (tema terang/gelap yang tersimpan bersama, radius 6px, font yang sama).
-- Dashboard: sapaan dan ringkasan hari ini, angka utama (alat siap diambil, sedang disewa, pembatalan menunggu, penggantian belum tuntas, pendapatan simulasi), agenda serah terima, grafik, tabel transaksi.
+- Dashboard: sapaan dan ringkasan hari ini, angka utama (alat siap diambil, sedang disewa, pembatalan menunggu, penggantian belum tuntas, pendapatan lunas), agenda serah terima, grafik, tabel transaksi.
 - Detail booking menampilkan tiket ekspedisi yang sama dengan yang dilihat penyewa, jejak status, dan kotak **Langkah berikutnya** sesuai status.
-- Operasional booking: terima tunai, checklist pengambilan + catat deposit, checklist pengembalian + laporan **kerusakan/kehilangan**, penyelesaian (diblokir sampai penggantian tuntas).
+- Operasional booking: verifikasi bukti pembayaran (preview privat, setujui/tolak dengan catatan wajib), terima tunai, checklist pengambilan + catat deposit, checklist pengembalian + laporan **kerusakan/kehilangan**, penyelesaian (diblokir sampai penggantian tuntas).
 - Tinjau pembatalan: setujui (booking dibatalkan, stok dilepas, catat refund/deposit) atau tolak.
 - CRUD alat (gambar, stok total, tarif harian), kategori, paket, dan artikel.
 
@@ -39,7 +39,7 @@ Proyek UAS Pemrograman Web — Kelas A PTIK 2024.
 
 | Lapisan | Teknologi | Alasan |
 |---|---|---|
-| Backend | PHP 8.2 native (tanpa framework), arsitektur front controller + MVC ringan | Sesuai materi kuliah; seluruh alur dapat ditelusuri dan dipertanggungjawabkan |
+| Backend | PHP native (minimum PHP 8.1, diuji pada PHP 8.2.12), arsitektur front controller + MVC ringan | Sesuai materi kuliah; seluruh alur dapat ditelusuri dan dipertanggungjawabkan |
 | Database | MySQL / MariaDB via **MySQLi** (prepared statement, transaksi) | Sesuai materi; mencegah SQL injection dan double booking |
 | Tampilan | Bootstrap 5.3 + Bootstrap Icons, sistem desain sendiri (`site.css`) dengan tema terang/gelap | Responsif untuk desktop dan mobile; satu radius kartu, kartu kaca, cahaya hover |
 | Interaksi | Vanilla JavaScript (`fetch`, `async/await`, Canvas 2D, Popover API, `<dialog>`, View Transitions, `localStorage`), Chart.js 4.4, qrcode.js, Lenis | AJAX untuk stok, katalog & grafik; ilustrasi langit/gunung; QR kartu pengambilan; scroll halus di beranda |
@@ -71,7 +71,7 @@ Buka <http://localhost:8000>. Opsi `--fresh` **menghapus** database `campgear` l
 |---|---|
 | Durasi sewa | Per hari, inklusif; maksimal **14 hari** |
 | Rentang pemesanan | Hari ini sampai H+90 |
-| Batas pembayaran | **24 jam**; lewat batas → kedaluwarsa, stok dilepas |
+| Batas pembayaran | **3 jam**; lewat batas tanpa bukti pending → kedaluwarsa, stok dilepas |
 | Ketersediaan stok | Stok total − pemakaian tertinggi per hari dari booking aktif |
 | Pembatalan | Sebelum tanggal mulai; *pending → approved / rejected*; disetujui → booking dibatalkan, stok dilepas |
 | Refund | Tidak dihitung otomatis; staf mencatat nominal (opsional) dan catatan |
@@ -116,10 +116,12 @@ Form HTML memakai `POST` dengan method spoofing (`_method=PUT/DELETE`) untuk ope
 - Password `password_hash` (bcrypt); semua query memakai prepared statement MySQLi.
 - Token CSRF di setiap form dan request `fetch` non-GET; output di-escape (`htmlspecialchars`).
 - Session `HttpOnly` + `SameSite=Lax`, ID session diganti saat login/logout; "Ingat saya" memakai token ber-hash yang dirotasi.
-- Pembatas percobaan login dan cek booking; middleware role (`auth`, `guest`, `role:staff,admin`, `role:admin`).
-- Upload: ukuran ≤ 2 MB, tipe dicek dari isi file, nama acak, folder uploads tidak mengeksekusi skrip.
+- **Invalidasi sesi:** saat pengguna mengganti password sendiri atau di-reset oleh Admin, seluruh token "Ingat saya" milik akun tersebut dicabut (`RememberToken::deleteForUser()`), dan sesi aktif di perangkat lain otomatis tertolak pada request berikutnya saat evaluasi tanda tangan hash password (`$_SESSION['password_sig']`).
+- **Rate limiting:** brute-force login & cek booking dibatasi via `login_attempts`; pembuatan booking dibatasi per IP per jam via tabel `rate_limits` atomik (`RateLimiter`).
+- Middleware role (`auth`, `guest`, `role:staff,admin`, `role:admin`).
+- **Upload aman & privat:** gambar publik (alat/artikel) divalidasi MIME (`finfo`), `getimagesize`, ukuran ≤ 2 MB, nama acak; folder `public/uploads/` memblokir eksekusi skrip. Bukti transfer/e-wallet disimpan di **`storage/payments/`** di luar folder `public/` (akses HTTP langsung diblokir aturan `.htaccess`), hanya dapat diunduh/dilihat melalui endpoint privat terotentikasi dengan verifikasi relasi booking dan header `X-Content-Type-Options: nosniff` serta `Cache-Control: private`.
 - Transaksi + `SELECT ... FOR UPDATE` mencegah double booking dan aksi ganda.
-- Semua tindakan Staff/Admin tercatat di log aktivitas.
+- Semua tindakan Staff/Admin tercatat di log aktivitas (`audit_logs`).
 
 ## Pengujian
 
@@ -127,7 +129,7 @@ Form HTML memakai `POST` dengan method spoofing (`_method=PUT/DELETE`) untuk ope
 bash tests/run-all.sh
 ```
 
-Hasil terakhir: **336 pemeriksaan otomatis lulus, 0 gagal**, ditambah 40 pemeriksaan aturan `.htaccess` di Apache dan uji responsif 31 halaman. Pengujian memakai database terpisah `campgear_test`. Detail: [docs/pengujian.md](docs/pengujian.md) · [tests/README.md](tests/README.md).
+Hasil terakhir: **340 pemeriksaan otomatis lulus, 0 gagal**, ditambah 40 pemeriksaan aturan `.htaccess` di Apache dan uji responsif 31 halaman. Pengujian memakai database terpisah `campgear_test`. Detail: [docs/pengujian.md](docs/pengujian.md) · [tests/README.md](tests/README.md).
 
 ## Dokumentasi
 

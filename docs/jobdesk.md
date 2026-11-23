@@ -7,7 +7,7 @@
 | Kelas / Kelompok | A PTIK 2024 / Kelompok 1 |
 | Jenis pengerjaan | Individu |
 
-Proyek dikerjakan secara individu. Seluruh peran di bawah dipegang oleh Felix Trinidat. Asisten AI (Claude, Anthropic) dipakai sebagai alat bantu pengembangan. Penjelasannya ada di bagian 2.
+Proyek dikerjakan secara individu. Seluruh peran di bawah dipegang oleh Felix Trinidat. Asisten AI digunakan sebagai alat bantu pengembangan sistem. Penjelasannya ada di bagian 2.
 
 ## 1. Peran dan Tanggung Jawab
 
@@ -25,14 +25,15 @@ Proyek dikerjakan secara individu. Seluruh peran di bawah dipegang oleh Felix Tr
 
 | Pihak | Peran |
 |---|---|
-| **Mahasiswa** | Menentukan visi, kebutuhan, batasan, dan keputusan bisnis; memilih opsi teknologi (PHP native dipilih setelah membandingkan dengan Laravel); meninjau dan menyetujui hasil; mengelola Git dan deploy secara manual |
+| **Mahasiswa** | Menentukan visi, kebutuhan, batasan, dan keputusan bisnis; memilih opsi teknologi (PHP native dipilih setelah membandingkan dengan Laravel); meninjau dan menyetujui hasil kode serta pengujian; mengelola Git dan deploy secara manual |
+| **Asisten AI** | Membantu penulisan kerangka kode awal, alternatif solusi implementasi, pembuatan skrip pengujian otomatis, dan perapian dokumentasi sesuai spesifikasi dari mahasiswa |
 
 Keputusan yang dibuat langsung oleh mahasiswa selama pengembangan, antara lain:
 
 - Memilih **PHP native** (bukan Laravel) agar seluruh materi kuliah, termasuk MySQLi, terimplementasi langsung.
 - Memilih **InfinityFree** sebagai hosting.
 - Menghapus aturan refund otomatis H-3 (khusus kelas glamping), serta menetapkan bahwa deposit dan biaya kerusakan/kehilangan **dicatat secara administratif** tanpa nominal atau formula baku.
-- Mempertahankan maksimal 14 hari sewa dan batas bayar 24 jam.
+- Mempertahankan maksimal 14 hari sewa dan menetapkan batas waktu pembayaran 3 jam dengan upload bukti transfer/e-wallet serta verifikasi staf.
 - Mengelola sendiri seluruh aktivitas Git dan GitHub.
 
 ## 3. Tahapan Pengerjaan
@@ -41,7 +42,7 @@ Keputusan yang dibuat langsung oleh mahasiswa selama pengembangan, antara lain:
 |---|---|
 | 1. Analisis | Audit brief dan materi kuliah, pemilihan teknologi, penetapan aturan bisnis |
 | 2. Fondasi | Kerangka aplikasi, router, database, autentikasi, halaman publik |
-| 3. Booking | Validasi stok per tanggal, transaksi berkunci, pembayaran simulasi, cek status, kartu QR |
+| 3. Booking & Pembayaran | Validasi stok per tanggal, transaksi berkunci, alur bukti bayar privat & verifikasi staf, cek status, kartu QR |
 | 4. Operasional | Pembatalan, serah terima, deposit, kerusakan/kehilangan, dashboard |
 | 5. Pengelolaan | CRUD alat/kategori/paket/artikel, manajemen akun, log aktivitas, grafik |
 | 6. Finalisasi | Data demo, pengujian menyeluruh, dokumentasi, deploy |
