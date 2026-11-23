@@ -4,7 +4,7 @@
 |---|---|
 | Nama | Felix Trinidat |
 | NIM | K3524075 |
-| Kelas / Kelompok | A PTIK 2024 / Kelompok 1 |
+| Kelas / Kelompok | A PTIK 2024 |
 | Jenis pengerjaan | Individu |
 
 Proyek dikerjakan secara individu. Seluruh peran di bawah dipegang oleh Felix Trinidat. Asisten AI digunakan sebagai alat bantu pengembangan sistem. Penjelasannya ada di bagian 2.
@@ -26,7 +26,6 @@ Proyek dikerjakan secara individu. Seluruh peran di bawah dipegang oleh Felix Tr
 | Pihak | Peran |
 |---|---|
 | **Mahasiswa** | Menentukan visi, kebutuhan, batasan, dan keputusan bisnis; memilih opsi teknologi (PHP native dipilih setelah membandingkan dengan Laravel); meninjau dan menyetujui hasil kode serta pengujian; mengelola Git dan deploy secara manual |
-| **Asisten AI** | Membantu penulisan kerangka kode awal, alternatif solusi implementasi, pembuatan skrip pengujian otomatis, dan perapian dokumentasi sesuai spesifikasi dari mahasiswa |
 
 Keputusan yang dibuat langsung oleh mahasiswa selama pengembangan, antara lain:
 
